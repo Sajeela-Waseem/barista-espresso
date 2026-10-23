@@ -203,7 +203,7 @@ const glassImgStyle = {
 
 function GlassImage({ full = false, className = '' }) {
   return (
-    <div className={`aspect-[441/528] overflow-hidden [clip-path:inset(0_3.2%_0_0)] [mask-image:linear-gradient(to_right,#000_92%,transparent_96.8%)] ${className}`}>
+    <div className={`relative aspect-[441/528] overflow-hidden [clip-path:inset(0_3.2%_0_0)] ${className}`}>
       {!full && (
         <img
           data-glass-empty
@@ -215,6 +215,12 @@ function GlassImage({ full = false, className = '' }) {
         />
       )}
       <img data-glass-full={full ? undefined : ''} src="images/hero.webp" alt="A glass of Barista iced coffee" style={glassImgStyle} />
+      {/* In the photo the can hides the glass's right wall, so it is drawn back in: a dark edge and a light glint */}
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
+        <path d="M96.4 3.5 L94.6 93" fill="none" stroke="rgba(30,18,12,.35)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+        <path d="M95.5 4 L93.8 92.5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="2.2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        <path d="M95 8 L94.4 40" fill="none" stroke="rgba(255,255,255,.75)" strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
     </div>
   )
 }
@@ -428,60 +434,6 @@ export default function Chapters() {
           // the full glass travels with the wave into "Sip"
           .to(move, { t: 1, duration: 0.9, ease: 'power2.inOut' }, 3.1)
 
-        // Place the glass every frame between its two slots (both move with their scenes)
-        const lerp = (a, b, t) => a + (b - a) * t
-        const placeGlass = (time) => {
-          const s = stageEl.getBoundingClientRect()
-          const a = slotPour.getBoundingClientRect()
-          const b = slotSip.getBoundingClientRect()
-          const t = move.t
-          const h = lerp(a.height, b.height, t)
-          const w = h * (441 / 528)
-          const cx = lerp(a.left + a.width / 2, b.left + b.width / 2, t) - s.left
-          const bottom = lerp(a.bottom, b.bottom, t) - s.top
-          // a small hop on the way, and a gentle float once it has arrived
-          const lift = Math.sin(Math.PI * t) * h * 0.12 + Math.sin(time * 1.6) * 4 * t
-          // 3D: the glass turns slightly towards the mouse and sways a little on its own
-          tiltX += (mouse.y * -7 - tiltX) * 0.08
-          tiltY += (mouse.x * 12 + Math.sin(time * 0.8) * 3 - tiltY) * 0.08
-          travelGlass.style.width = `${w}px`
-          travelGlass.style.height = `${h}px`
-          // GLASS_MID: the glass itself (not the ice beside it) is centred on the slot
-          travelGlass.style.transform = `translate(${cx - w * GLASS_MID}px, ${bottom - h - lift}px) perspective(${w * 4}px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) rotate(${Math.sin(Math.PI * t) * -4}deg)`
-        }
-        let tiltX = 0
-        let tiltY = 0
-        const mouse = { x: 0, y: 0 }
-        const onGlassMouse = (e) => {
-          mouse.x = e.clientX / window.innerWidth - 0.5
-          mouse.y = e.clientY / window.innerHeight - 0.5
-        }
-        window.addEventListener('mousemove', onGlassMouse)
-        gsap.ticker.add(placeGlass)
-
-        // Draw the stream every frame from the can's opening to the coffee surface in the glass
-        const drawStream = () => {
-          if (pour.grow <= pour.cut) {
-            pourStream.forEach((p) => p.setAttribute('d', ''))
-            return
-          }
-          const s = stageEl.getBoundingClientRect()
-          const m = mouth.getBoundingClientRect()
-          const g = travelGlass.getBoundingClientRect()
-          const x0 = m.left - s.left
-          const y0 = m.top - s.top
-          const x1 = g.left - s.left + g.width * 0.62
-          const y1 = g.top - s.top + g.height * Math.max(pour.fill, 0.2)
-          // leaves the can sideways, then falls (quadratic curve)
-          const d = `M${x0} ${y0} Q${x0 + (x1 - x0) * 0.75} ${y0 + (y1 - y0) * 0.08} ${x1} ${y1}`
-          pourStream.forEach((p) => {
-            p.setAttribute('d', d)
-            p.setAttribute('stroke-dasharray', `${pour.grow - pour.cut} 2`)
-            p.setAttribute('stroke-dashoffset', String(-pour.cut))
-          })
-        }
-        gsap.ticker.add(drawStream)
-
         /* ---------- unit 3→4: a glossy wave of coffee rises and reveals "Sip" inside it (as in the reel) ---------- */
         const sipScene = sceneEls[n - 1]
         const liquidSvg = q('[data-liquid-edge]')[0]
@@ -489,59 +441,6 @@ export default function Chapters() {
         const wave = { p: 0 }
         gsap.set(sipScene.querySelector('[data-wave]'), { display: 'none' })
         tl.to(wave, { p: 1, duration: 1.05, ease: 'power1.inOut' }, sceneStart[n - 1])
-
-        const STEPS = 36
-        const drawLiquid = (time) => {
-          const p = wave.p
-          if (p >= 1) {
-            if (sipScene.style.clipPath !== 'none') sipScene.style.clipPath = 'none'
-            liquidSvg.style.opacity = '0'
-            return
-          }
-          if (p <= 0) {
-            sipScene.style.clipPath = 'polygon(0 0, 0 0, 0 0)'
-            liquidSvg.style.opacity = '0'
-            return
-          }
-          const W = stageEl.clientWidth
-          const H = stageEl.clientHeight
-          // a lens of liquid: thin and wavy at first, then it swells until it covers the screen
-          const mid = 0.74 - 0.24 * p
-          const half = 0.95 * p * p + 0.05 * p
-          const wob = 0.05 * (1 - p)
-          const t = time * 0.35
-          const top = []
-          const bot = []
-          for (let k = 0; k <= STEPS; k++) {
-            const x = k / STEPS
-            const shape = 0.8 + 0.2 * Math.sin(Math.PI * (x * 1.2 + 0.1))
-            const ripple = wob * Math.sin(Math.PI * 2 * (x * 0.9 + t))
-            top.push([x * W, (mid - half * shape + ripple) * H])
-            bot.push([x * W, (mid + half * shape * 0.9 + ripple * 0.8) * H])
-          }
-          const pct = ([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`
-          sipScene.style.clipPath = `polygon(${[...top, ...bot.slice().reverse()].map(pct).join(',')})`
-
-          // glossy amber surfaces along both edges of the wave
-          const th = Math.min(0.07 * H, half * H * 0.6)
-          const band = (edge, dir) =>
-            `M${edge.map(([x, y]) => `${x},${y}`).join(' L')} L${edge
-              .slice()
-              .reverse()
-              .map(([x, y]) => `${x},${y + dir * th}`)
-              .join(' L')} Z`
-          const line = (edge, off) => `M${edge.map(([x, y]) => `${x},${y + off}`).join(' L')}`
-          liquidSvg.setAttribute('viewBox', `0 0 ${W} ${H}`)
-          liquidSvg.style.opacity = '1'
-          // amber tint through the whole wave, clearing as it covers the screen
-          tint.setAttribute('d', `M${top.map(([x, y]) => `${x},${y}`).join(' L')} L${bot.slice().reverse().map(([x, y]) => `${x},${y}`).join(' L')} Z`)
-          tint.setAttribute('fill-opacity', String(0.42 * (1 - p) * (1 - p)))
-          edgeTop.setAttribute('d', band(top, 1))
-          edgeBottom.setAttribute('d', band(bot, -1))
-          shineTop.setAttribute('d', line(top, th * 0.28))
-          shineBottom.setAttribute('d', line(bot, -th * 0.3))
-        }
-        gsap.ticker.add(drawLiquid)
         // keep the timeline exactly `units` long so scroll position maps to the units above
         tl.set({}, {}, units)
 
@@ -556,58 +455,172 @@ export default function Chapters() {
         const orbitCards = q('[data-orbit-card]')
         const settle = { r: 0 }
         tl.to(settle, { r: 1, duration: 0.75, ease: 'none' }, 3.7)
+        const backOut = gsap.parseEase('back.out(1.3)')
 
-        const ease = gsap.parseEase('back.out(1.3)')
-        const drawCards = (time) => {
+        /*
+          One per-frame update for the glass, the stream, the wave and the cards.
+          For smooth frames it first READS every position it needs, then only WRITES
+          (transforms, SVG paths), so the browser lays the page out once per frame.
+          It sleeps while the section is off screen.
+        */
+        let onScreen = true
+        const io = new IntersectionObserver(([e]) => (onScreen = e.isIntersecting))
+        io.observe(stageEl)
+        const mouse = { x: 0, y: 0 }
+        const onGlassMouse = (e) => {
+          mouse.x = e.clientX / window.innerWidth - 0.5
+          mouse.y = e.clientY / window.innerHeight - 0.5
+        }
+        window.addEventListener('mousemove', onGlassMouse)
+        let tiltX = 0
+        let tiltY = 0
+        let baseH = 0
+        let cardW = 0
+        let clipState = ''
+        const lerp = (a, b, t) => a + (b - a) * t
+        const STEPS = 28
+        const fmt = (v) => v.toFixed(1)
+
+        const frame = (time) => {
+          if (!onScreen) return
+
+          /* ----- reads ----- */
+          const s = stageEl.getBoundingClientRect()
+          const a = slotPour.getBoundingClientRect()
+          const b = slotSip.getBoundingClientRect()
+          const streamOn = pour.grow > pour.cut
+          const m = streamOn ? mouth.getBoundingClientRect() : null
+          const W = s.width
+          const H = s.height
+
+          /* ----- glass: travels from its "Pour" spot to its "Sip" spot ----- */
+          const t = move.t
+          const h = lerp(a.height, b.height, t)
+          const w = h * (441 / 528)
+          const cx = lerp(a.left + a.width / 2, b.left + b.width / 2, t) - s.left
+          // a small hop on the way, and a gentle float once it has arrived
+          const lift = Math.sin(Math.PI * t) * h * 0.12 + Math.sin(time * 1.6) * 4 * t
+          const bottom = lerp(a.bottom, b.bottom, t) - s.top - lift
+          // the element keeps one size (the "Sip" size) and is scaled, so nothing is re-laid out
+          if (Math.abs(baseH - b.height) > 0.5) {
+            baseH = b.height
+            travelGlass.style.height = `${baseH}px`
+            travelGlass.style.width = `${baseH * (441 / 528)}px`
+            travelGlass.style.transformOrigin = `${GLASS_MID * 100}% 100%`
+          }
+          // 3D: the glass turns slightly towards the mouse and sways a little on its own
+          tiltX += (mouse.y * -7 - tiltX) * 0.08
+          tiltY += (mouse.x * 12 + Math.sin(time * 0.8) * 3 - tiltY) * 0.08
+          const ox = baseH * (441 / 528) * GLASS_MID
+          travelGlass.style.transform =
+            `translate3d(${fmt(cx - ox)}px, ${fmt(bottom - baseH)}px, 0) scale(${(h / baseH).toFixed(4)}) ` +
+            `perspective(${fmt(baseH * 3.4)}px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) rotate(${(Math.sin(Math.PI * t) * -4).toFixed(2)}deg)`
+          const gTop = bottom - h
+          const gLeft = cx - w * GLASS_MID
+
+          /* ----- stream: from the can's opening to the coffee surface ----- */
+          if (streamOn) {
+            const x0 = m.left - s.left
+            const y0 = m.top - s.top
+            const x1 = gLeft + w * 0.62
+            const y1 = gTop + h * Math.max(pour.fill, 0.2)
+            // leaves the can sideways, then falls (quadratic curve)
+            const d = `M${fmt(x0)} ${fmt(y0)} Q${fmt(x0 + (x1 - x0) * 0.75)} ${fmt(y0 + (y1 - y0) * 0.08)} ${fmt(x1)} ${fmt(y1)}`
+            pourStream.forEach((p) => {
+              p.setAttribute('d', d)
+              p.setAttribute('stroke-dasharray', `${(pour.grow - pour.cut).toFixed(4)} 2`)
+              p.setAttribute('stroke-dashoffset', String(-pour.cut))
+            })
+          } else if (pourStream[0].getAttribute('d')) pourStream.forEach((p) => p.setAttribute('d', ''))
+
+          /* ----- liquid wave ----- */
+          const p = wave.p
+          if (p <= 0 || p >= 1) {
+            const want = p <= 0 ? 'hidden' : 'shown'
+            if (clipState !== want) {
+              clipState = want
+              sipScene.style.clipPath = p <= 0 ? 'polygon(0 0, 0 0, 0 0)' : 'none'
+              liquidSvg.style.opacity = '0'
+            }
+          } else {
+            clipState = 'wave'
+            // a lens of liquid: thin and wavy at first, then it swells until it covers the screen
+            const mid = 0.74 - 0.24 * p
+            const half = 0.95 * p * p + 0.05 * p
+            const wob = 0.05 * (1 - p)
+            const ph = time * 0.35
+            const top = []
+            const bot = []
+            for (let k = 0; k <= STEPS; k++) {
+              const x = k / STEPS
+              const shape = 0.8 + 0.2 * Math.sin(Math.PI * (x * 1.2 + 0.1))
+              const ripple = wob * Math.sin(Math.PI * 2 * (x * 0.9 + ph))
+              top.push([x * W, (mid - half * shape + ripple) * H])
+              bot.push([x * W, (mid + half * shape * 0.9 + ripple * 0.8) * H])
+            }
+            const botRev = bot.slice().reverse()
+            sipScene.style.clipPath = `polygon(${top
+              .concat(botRev)
+              .map(([x, y]) => `${fmt(x)}px ${fmt(y)}px`)
+              .join(',')})`
+            // glossy amber surfaces along both edges of the wave
+            const th = Math.min(0.07 * H, half * H * 0.6)
+            const pts = (edge, off = 0) => edge.map(([x, y]) => `${fmt(x)},${fmt(y + off)}`).join(' L')
+            const band = (edge, dir) => `M${pts(edge)} L${pts(edge.slice().reverse(), dir * th)} Z`
+            liquidSvg.setAttribute('viewBox', `0 0 ${fmt(W)} ${fmt(H)}`)
+            liquidSvg.style.opacity = '1'
+            // amber tint through the whole wave, clearing as it covers the screen
+            tint.setAttribute('d', `M${pts(top)} L${pts(botRev)} Z`)
+            tint.setAttribute('fill-opacity', (0.42 * (1 - p) * (1 - p)).toFixed(3))
+            edgeTop.setAttribute('d', band(top, 1))
+            edgeBottom.setAttribute('d', band(bot, -1))
+            shineTop.setAttribute('d', `M${pts(top, th * 0.28)}`)
+            shineBottom.setAttribute('d', `M${pts(bot, -th * 0.3)}`)
+          }
+
+          /* ----- cards ----- */
           const r = settle.r
           if (r <= 0.001) {
-            orbitCards.forEach((c) => (c.style.visibility = 'hidden'))
+            if (orbitCards[0].style.visibility !== 'hidden') orbitCards.forEach((c) => (c.style.visibility = 'hidden'))
             return
           }
-          const s = stageEl.getBoundingClientRect()
-          const g = travelGlass.getBoundingClientRect()
-          const cx = g.left - s.left + g.width * GLASS_MID
-          const cy = g.top - s.top + g.height * 0.45
+          // cards are sized to the glass, like the reel (about a third of its width)
+          const cw = Math.round(gsap.utils.clamp(92, 210, b.width * 0.36))
+          if (cw !== cardW) {
+            cardW = cw
+            orbitCards.forEach((c) => (c.style.width = `${cw}px`))
+          }
+          const ccy = gTop + h * 0.45
           orbitCards.forEach((c, i) => {
             const spot = SPOTS[i % SPOTS.length]
             // each card starts a little after the one before
             const k = gsap.utils.clamp(0, 1, (r - i * 0.15) / 0.7)
-            const e = ease(k)
-            // cards are sized to the glass, like the reel (about a third of its width)
-            const cw = gsap.utils.clamp(92, 210, g.width * 0.36)
-            c.style.width = `${cw}px`
-            const half = cw / 2
-            const tx = gsap.utils.clamp(half + 8, s.width - half - 8, cx + spot.dx * g.width)
-            const ty = cy + spot.dy * g.height
+            const e = backOut(k)
+            const halfW = cw / 2
+            const tx = gsap.utils.clamp(halfW + 8, W - halfW - 8, cx + spot.dx * w)
+            const ty = ccy + spot.dy * h
             // out of the glass in an arc, tumbling, then a gentle bob at rest
-            const arc = Math.sin(Math.PI * Math.min(k, 1)) * g.height * 0.25
+            const arc = Math.sin(Math.PI * k) * h * 0.25
             const bob = Math.sin(time * 1.4 + i * 1.7) * 6 * k
-            gsap.set(c, {
-              visibility: k > 0 ? 'visible' : 'hidden',
-              x: cx + (tx - cx) * e,
-              y: cy + (ty - cy) * e - arc + bob,
-              xPercent: -50,
-              yPercent: -50,
-              scale: 0.2 + 0.8 * e,
-              rotationX: (1 - k) * [60, -50, 70][i % 3],
-              rotationY: (1 - k) * [-90, 80, 60][i % 3] + Math.sin(time * 0.9 + i) * 4 * k,
-              rotation: spot.rot * e + (1 - k) * [-40, 30, -25][i % 3],
-              transformPerspective: 900,
-              // cards come out from behind the glass; the front ones move in front once they are clear
-              zIndex: spot.front && k > 0.45 ? 3 : 1,
-              opacity: Math.min(1, k * 2.5),
-            })
+            const rx = (1 - k) * [60, -50, 70][i % 3]
+            const ry = (1 - k) * [-90, 80, 60][i % 3] + Math.sin(time * 0.9 + i) * 4 * k
+            const rz = spot.rot * e + (1 - k) * [-40, 30, -25][i % 3]
+            c.style.visibility = k > 0 ? 'visible' : 'hidden'
+            c.style.opacity = Math.min(1, k * 2.5).toFixed(3)
+            // cards come out from behind the glass; the front ones move in front once they are clear
+            c.style.zIndex = spot.front && k > 0.45 ? '3' : '1'
+            c.style.transform =
+              `translate3d(${fmt(cx + (tx - cx) * e - halfW)}px, ${fmt(ccy + (ty - ccy) * e - arc + bob)}px, 0) translateY(-50%) ` +
+              `perspective(900px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) rotate(${rz.toFixed(2)}deg) scale(${(0.2 + 0.8 * e).toFixed(3)})`
           })
         }
-        gsap.ticker.add(drawCards)
+        gsap.ticker.add(frame)
 
         /* ---------- mouse parallax (desktop) ---------- */
         if (!window.matchMedia('(pointer: fine)').matches)
           return () => {
-            gsap.ticker.remove(drawStream)
-            gsap.ticker.remove(drawLiquid)
-            gsap.ticker.remove(placeGlass)
-            gsap.ticker.remove(drawCards)
+            gsap.ticker.remove(frame)
+            io.disconnect()
             window.removeEventListener('mousemove', onGlassMouse)
             trigger.current = null
           }
@@ -631,10 +644,8 @@ export default function Chapters() {
         stage.addEventListener('mousemove', onMove)
         return () => {
           stage.removeEventListener('mousemove', onMove)
-          gsap.ticker.remove(drawStream)
-          gsap.ticker.remove(drawLiquid)
-          gsap.ticker.remove(placeGlass)
-          gsap.ticker.remove(drawCards)
+          gsap.ticker.remove(frame)
+          io.disconnect()
           window.removeEventListener('mousemove', onGlassMouse)
           trigger.current = null
         }
