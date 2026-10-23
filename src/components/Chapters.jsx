@@ -70,7 +70,7 @@ const scenes = [
 const rangeCards = [
   { tag: 'Capsules', name: 'Espresso Capsules', img: 'images/capsules.webp', cls: 'left-[4%] top-[50%] md:left-[63%] md:top-[18%]' },
   { tag: 'Syrups', name: 'Syrups & Sauces', img: 'images/syrups.webp', cls: 'right-[4%] top-[56%] md:right-[9%] md:top-[40%]' },
-  { tag: 'Machines', name: 'Espresso Machines', img: 'images/machines.webp', cls: 'left-[6%] bottom-[6%] md:left-[30%] md:bottom-[14%]' },
+  { tag: 'Machines', name: 'Espresso Machines', img: 'images/machines.webp', cls: 'left-[6%] bottom-[6%] md:left-[22%] md:bottom-[14%]' },
 ]
 
 const beanSrcs = ['images/bean-b6.webp', 'images/bean-b7.webp', 'images/bean-b8.webp', 'images/bean-b9.webp']
@@ -218,9 +218,54 @@ function Product({ id }) {
         <div className="relative">
           <FloorShadow className="bottom-[2%] w-[70%]" />
           <div data-float>
-            <img data-product src="images/hero.webp" alt="Barista iced coffee can and a glass of iced coffee" className="w-full" />
+            {/*
+              The photo is split into the glass (left of 50.5%) and the can (50.5–72.5%) so the can
+              can lift and pour on its own. The "empty" glass is the same photo washed out; the full
+              glass is revealed from the bottom up as the coffee pours. Markup = finished state.
+            */}
+            <div data-product className="relative">
+              <img src="images/hero.webp" alt="" aria-hidden="true" className="invisible w-full" />
+              <img
+                data-glass-empty
+                src="images/hero.webp"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 size-full opacity-0 [clip-path:inset(0_49.5%_0_0)] [filter:grayscale(1)_brightness(2.3)_contrast(.4)]"
+              />
+              <svg data-can-pour viewBox="0 0 1400 788" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible" aria-hidden="true">
+                <defs>
+                  <linearGradient id="iced-stream" x1="0" x2="1">
+                    <stop offset="0" stopColor="#5b3219" />
+                    <stop offset=".5" stopColor="#b47a4c" />
+                    <stop offset="1" stopColor="#6b3c1f" />
+                  </linearGradient>
+                </defs>
+                <path
+                  data-can-stream
+                  d="M567 173 C 562 260, 556 420, 552 700"
+                  pathLength="1"
+                  fill="none"
+                  stroke="url(#iced-stream)"
+                  strokeWidth="14"
+                  strokeLinecap="round"
+                  strokeDasharray="1 1"
+                  strokeDashoffset="1"
+                />
+              </svg>
+              <img
+                data-glass-full
+                src="images/hero.webp"
+                alt="A glass of Barista iced coffee"
+                className="absolute inset-0 size-full [clip-path:inset(0%_49.5%_0%_0%)]"
+              />
+              <img
+                data-can
+                src="images/hero.webp"
+                alt="Barista iced coffee can"
+                className="absolute inset-0 size-full origin-[61.25%_50%] [clip-path:inset(0_27.5%_0_50.5%)]"
+              />
+            </div>
           </div>
-          <Steam className="top-[4%] left-[31%] h-[30%] w-[14%]" />
         </div>
       </div>
       {rangeCards.map((c) => (
@@ -332,8 +377,9 @@ export default function Chapters() {
           .from(q('[data-ui]'), { opacity: 0, duration: 1 }, 0.7)
 
         /* ---------- pinned scroll sequence (follows the wheel directly, no snapping) ---------- */
-        // Scroll "units": 0→1 brews the espresso in scene 1, then one unit per scene change
-        const units = n
+        // Scroll "units": 0→1 brews the espresso in scene 1, one unit per scene change,
+        // and a last unit where the can pours into the glass in scene 3
+        const units = n + 1
         const tl = gsap.timeline({
           defaults: { ease: 'none' },
           scrollTrigger: {
@@ -345,7 +391,7 @@ export default function Chapters() {
             anticipatePin: 1,
             onUpdate: (self) => {
               const u = self.progress * units
-              const i = u < 1.5 ? 0 : Math.round(u - 1)
+              const i = u < 1.5 ? 0 : Math.min(n - 1, Math.round(u - 1))
               if (i !== activeRef.current) {
                 activeRef.current = i
                 setActive(i)
@@ -400,6 +446,23 @@ export default function Chapters() {
             )
         }
 
+        /* ---------- last unit: the can lifts, tilts over the glass and pours it full ---------- */
+        const can = q('[data-can]')
+        const canStream = q('[data-can-stream]')
+        const glassFull = q('[data-glass-full]')
+        const pourAt = n
+        gsap.set(q('[data-glass-empty]'), { opacity: 0.7 })
+        gsap.set(glassFull, { clipPath: 'inset(90% 49.5% 0% 0%)' })
+        tl.to(can, { yPercent: -10, duration: 0.12, ease: 'power1.out' }, pourAt)
+          // lip of the can ends up just above the middle of the glass
+          .to(can, { rotation: -80, xPercent: 7.9, yPercent: -38.3, duration: 0.22, ease: 'power1.inOut' }, pourAt + 0.1)
+          .to(canStream, { strokeDashoffset: 0, duration: 0.06 }, pourAt + 0.3)
+          .to(glassFull, { clipPath: 'inset(0% 49.5% 0% 0%)', duration: 0.44, ease: 'power1.inOut' }, pourAt + 0.33)
+          // last of the stream falls into the glass, then the can goes back
+          .to(canStream, { strokeDashoffset: -1, duration: 0.06 }, pourAt + 0.77)
+          .to(can, { rotation: 0, xPercent: 0, yPercent: 0, duration: 0.18, ease: 'power2.inOut' }, pourAt + 0.8)
+        gsap.to(canStream, { attr: { 'stroke-width': 11 }, duration: 0.14, yoyo: true, repeat: -1, ease: 'sine.inOut' })
+
         // Product cards pop in when the last scene arrives (and tuck away when leaving)
         const cardsTween = gsap.from(q('[data-card]'), {
           scale: 0.5,
@@ -412,8 +475,9 @@ export default function Chapters() {
           paused: true,
         })
         tl.eventCallback('onUpdate', () => {
-          if (tl.progress() > 0.87) cardsTween.play()
-          else if (tl.progress() < 0.7) cardsTween.reverse()
+          // units: scene 3 slides in over 2→3 (cards at 2.6), the can pours over 3→4
+          if (tl.progress() > 2.6 / units) cardsTween.play()
+          else if (tl.progress() < 2.1 / units) cardsTween.reverse()
         })
 
         /* ---------- mouse parallax (desktop) ---------- */
@@ -454,7 +518,7 @@ export default function Chapters() {
     }
     // scene 1 starts at unit 0; every later scene sits one unit after the espresso pour
     const unit = target === 0 ? 0 : target + 1
-    const y = st.start + (st.end - st.start) * (unit / scenes.length)
+    const y = st.start + (st.end - st.start) * (unit / (scenes.length + 1))
     const lenis = getLenis()
     if (lenis) lenis.scrollTo(y, { duration: 1.4 })
     else window.scrollTo({ top: y, behavior: 'smooth' })
