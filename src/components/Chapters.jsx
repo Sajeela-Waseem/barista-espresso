@@ -46,6 +46,9 @@ const scenes = [
     bg: [
       'linear-gradient(115deg, transparent 30%, rgba(255,214,170,.16) 42%, transparent 55%)',
       'linear-gradient(to bottom, #a35f3b 0%, rgba(163,95,59,0) 22%)',
+      // a light counter for the glass to stand on, like the reel's pour shot
+      'linear-gradient(to bottom, transparent 0 80%, rgba(0,0,0,.14) 80%, transparent 83%)',
+      'linear-gradient(to bottom, transparent 0 80%, #d9b48f 80%, #e8cfb2 100%)',
       'radial-gradient(65% 70% at 60% 45%, #bd7a51 0%, #a35f3b 50%, #7f4227 100%)',
     ].join(','),
   },
@@ -138,7 +141,8 @@ function Product({ id }) {
   }
   if (id === 'pour') {
     return (
-      <div className="absolute top-[40%] right-[-22%] w-[128%] md:top-[4%] md:right-[-2%] md:w-[64%]">
+      // top-right, so the can pours straight down into the glass standing in the middle
+      <div className="absolute top-[34%] right-[-46%] w-[118%] md:top-[-9%] md:right-[-6%] md:w-[58%]">
         <div className="relative">
           <div data-float>
             <div data-product className="relative origin-[80%_60%]">
@@ -433,12 +437,23 @@ export default function Chapters() {
           const w = h * (441 / 528)
           const cx = lerp(a.left + a.width / 2, b.left + b.width / 2, t) - s.left
           const bottom = lerp(a.bottom, b.bottom, t) - s.top
-          // a small arc on the way, and a gentle float once it has arrived
-          const lift = Math.sin(Math.PI * t) * h * 0.25 + Math.sin(time * 1.6) * 5 * t
+          // a small hop on the way, and a gentle float once it has arrived
+          const lift = Math.sin(Math.PI * t) * h * 0.12 + Math.sin(time * 1.6) * 4 * t
+          // 3D: the glass turns slightly towards the mouse and sways a little on its own
+          tiltX += (mouse.y * -7 - tiltX) * 0.08
+          tiltY += (mouse.x * 12 + Math.sin(time * 0.8) * 3 - tiltY) * 0.08
           travelGlass.style.width = `${w}px`
           travelGlass.style.height = `${h}px`
-          travelGlass.style.transform = `translate(${cx - w / 2}px, ${bottom - h - lift}px) rotate(${Math.sin(Math.PI * t) * -6}deg)`
+          travelGlass.style.transform = `translate(${cx - w / 2}px, ${bottom - h - lift}px) perspective(${w * 4}px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) rotate(${Math.sin(Math.PI * t) * -4}deg)`
         }
+        let tiltX = 0
+        let tiltY = 0
+        const mouse = { x: 0, y: 0 }
+        const onGlassMouse = (e) => {
+          mouse.x = e.clientX / window.innerWidth - 0.5
+          mouse.y = e.clientY / window.innerHeight - 0.5
+        }
+        window.addEventListener('mousemove', onGlassMouse)
         gsap.ticker.add(placeGlass)
 
         // Draw the stream every frame from the can's opening to the coffee surface in the glass
@@ -527,50 +542,61 @@ export default function Chapters() {
         // keep the timeline exactly `units` long so scroll position maps to the units above
         tl.set({}, {}, units)
 
-        /* ---------- in "Sip": the cards come out from behind the glass and revolve around it ---------- */
+        /* ---------- in "Sip": the cards fly out from behind the glass once, then rest around it (as in the reel) ---------- */
+        // Resting spots, relative to the glass: dx/dy in glass widths/heights from its centre.
+        // front = drawn in front of the glass, otherwise behind it.
+        const SPOTS = [
+          { dx: 0.6, dy: -0.36, rot: 5, front: false }, // Capsules: top right, partly behind the glass
+          { dx: 1.0, dy: 0.04, rot: -4, front: true }, // Syrups: to the right
+          { dx: -0.5, dy: 0.22, rot: -6, front: true }, // Machines: low on the front-left, overlapping the glass
+        ]
         const orbitCards = q('[data-orbit-card]')
-        const orbit = { r: 0 }
-        let angle = 0
-        let hovering = false
-        orbitCards.forEach((c) => {
-          c.addEventListener('mouseenter', () => (hovering = true))
-          c.addEventListener('mouseleave', () => (hovering = false))
-        })
-        tl.to(orbit, { r: 1, duration: 0.6, ease: 'back.out(1.4)' }, 3.75)
+        const settle = { r: 0 }
+        tl.to(settle, { r: 1, duration: 0.75, ease: 'none' }, 3.7)
 
-        const drawOrbit = (time, dt) => {
-          if (!hovering) angle += (dt / 1000) * 0.42
-          const r = orbit.r
+        const ease = gsap.parseEase('back.out(1.3)')
+        const drawCards = (time) => {
+          const r = settle.r
           if (r <= 0.001) {
             orbitCards.forEach((c) => (c.style.visibility = 'hidden'))
             return
           }
           const s = stageEl.getBoundingClientRect()
           const g = travelGlass.getBoundingClientRect()
-          const W = s.width
           const cx = g.left - s.left + g.width * 0.5
-          const cy = g.top - s.top + g.height * 0.58
-          const rx = Math.min(W * (W < 768 ? 0.36 : 0.3), g.width * 1.5) * r
-          const ry = g.height * 0.2 * r
+          const cy = g.top - s.top + g.height * 0.45
           orbitCards.forEach((c, i) => {
-            const a = angle + (i * Math.PI * 2) / orbitCards.length
-            const depth = Math.sin(a) // 1 = in front of the glass, -1 = behind it
+            const spot = SPOTS[i % SPOTS.length]
+            // each card starts a little after the one before
+            const k = gsap.utils.clamp(0, 1, (r - i * 0.15) / 0.7)
+            const e = ease(k)
+            // cards are sized to the glass, like the reel (about a third of its width)
+            const cw = gsap.utils.clamp(92, 210, g.width * 0.36)
+            c.style.width = `${cw}px`
+            const half = cw / 2
+            const tx = gsap.utils.clamp(half + 8, s.width - half - 8, cx + spot.dx * g.width)
+            const ty = cy + spot.dy * g.height
+            // out of the glass in an arc, tumbling, then a gentle bob at rest
+            const arc = Math.sin(Math.PI * Math.min(k, 1)) * g.height * 0.25
+            const bob = Math.sin(time * 1.4 + i * 1.7) * 6 * k
             gsap.set(c, {
-              visibility: 'visible',
-              x: cx + Math.cos(a) * rx,
-              y: cy + depth * ry + (i - 1) * g.height * 0.08,
+              visibility: k > 0 ? 'visible' : 'hidden',
+              x: cx + (tx - cx) * e,
+              y: cy + (ty - cy) * e - arc + bob,
               xPercent: -50,
               yPercent: -50,
-              scale: (0.78 + 0.22 * depth) * (0.25 + 0.75 * r),
-              rotationY: -Math.cos(a) * 28,
-              rotation: Math.cos(a) * 4,
+              scale: 0.2 + 0.8 * e,
+              rotationX: (1 - k) * [60, -50, 70][i % 3],
+              rotationY: (1 - k) * [-90, 80, 60][i % 3] + Math.sin(time * 0.9 + i) * 4 * k,
+              rotation: spot.rot * e + (1 - k) * [-40, 30, -25][i % 3],
               transformPerspective: 900,
-              zIndex: depth > 0 ? 3 : 1,
-              opacity: Math.min(1, r * 1.4) * (0.7 + 0.3 * (depth + 1) * 0.5),
+              // cards come out from behind the glass; the front ones move in front once they are clear
+              zIndex: spot.front && k > 0.45 ? 3 : 1,
+              opacity: Math.min(1, k * 2.5),
             })
           })
         }
-        gsap.ticker.add(drawOrbit)
+        gsap.ticker.add(drawCards)
 
         /* ---------- mouse parallax (desktop) ---------- */
         if (!window.matchMedia('(pointer: fine)').matches)
@@ -578,7 +604,8 @@ export default function Chapters() {
             gsap.ticker.remove(drawStream)
             gsap.ticker.remove(drawLiquid)
             gsap.ticker.remove(placeGlass)
-            gsap.ticker.remove(drawOrbit)
+            gsap.ticker.remove(drawCards)
+            window.removeEventListener('mousemove', onGlassMouse)
             trigger.current = null
           }
         const movers = [
@@ -604,7 +631,8 @@ export default function Chapters() {
           gsap.ticker.remove(drawStream)
           gsap.ticker.remove(drawLiquid)
           gsap.ticker.remove(placeGlass)
-          gsap.ticker.remove(drawOrbit)
+          gsap.ticker.remove(drawCards)
+          window.removeEventListener('mousemove', onGlassMouse)
           trigger.current = null
         }
       })
@@ -675,7 +703,7 @@ export default function Chapters() {
             {s.id === 'pour' && (
               <div
                 data-glass-slot="pour"
-                className="pointer-events-none absolute bottom-[4%] left-[8%] aspect-[441/528] h-[22svh] md:bottom-[8%] md:left-[40%] md:h-[min(34svh,26vw)]"
+                className="pointer-events-none absolute bottom-[9%] left-1/2 aspect-[441/528] h-[26svh] -translate-x-1/2 md:bottom-[11%] md:left-[52%] md:h-[min(42svh,32vw)]"
                 aria-hidden="true"
               >
                 <FloorShadow className="bottom-[-4%] w-[85%]" />
@@ -684,7 +712,7 @@ export default function Chapters() {
             {s.id === 'sip' && (
               <div
                 data-glass-slot="sip"
-                className="pointer-events-none absolute bottom-[14%] left-1/2 aspect-[441/528] h-[30svh] -translate-x-1/2 md:bottom-[10%] md:left-[55%] md:h-[min(50svh,38vw)]"
+                className="pointer-events-none absolute bottom-[12%] left-1/2 aspect-[441/528] h-[32svh] -translate-x-1/2 md:bottom-[10%] md:left-[52%] md:h-[min(56svh,40vw)]"
                 aria-hidden="true"
               >
                 <FloorShadow className="bottom-[-4%] w-[85%]" />
