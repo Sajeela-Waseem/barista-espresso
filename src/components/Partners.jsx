@@ -105,7 +105,9 @@ export default function Partners() {
                         cur === i ? 'text-ink' : 'text-cream/75 hover:text-cream'
                       }`}
                     >
-                      {item.tab}
+                      {/* shorter labels on phones so all three tabs fit */}
+                      <span className="sm:hidden">{item.short}</span>
+                      <span className="hidden sm:inline">{item.tab}</span>
                     </button>
                   ))}
                 </div>

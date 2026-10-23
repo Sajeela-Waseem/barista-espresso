@@ -35,6 +35,7 @@ export const stores = [
 export const audiences = [
   {
     tab: 'Offices',
+    short: 'Offices',
     img: 'images/machines.webp',
     title: 'Coffee your team actually drinks',
     text: 'Machines matched to your headcount and kept stocked, so nobody is out buying coffee at eleven.',
@@ -42,6 +43,7 @@ export const audiences = [
   },
   {
     tab: 'Restaurants & hotels',
+    short: 'Hospitality',
     img: 'images/syrups.webp',
     title: 'Built for daily service',
     text: 'Equipment that holds up through a full service, plus everything that goes around the cup.',
@@ -49,6 +51,7 @@ export const audiences = [
   },
   {
     tab: 'Retail & distribution',
+    short: 'Retail',
     img: 'images/capsules.webp',
     title: 'The full range on your shelves',
     text: 'Nine ranges under one name, already moving in shops across Lebanon.',

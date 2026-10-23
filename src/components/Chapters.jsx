@@ -69,9 +69,9 @@ const scenes = [
 ]
 
 const rangeCards = [
-  { tag: 'Capsules', name: 'Espresso Capsules', img: 'images/capsules.webp', cls: 'left-[4%] top-[50%] md:left-[63%] md:top-[18%]' },
-  { tag: 'Syrups', name: 'Syrups & Sauces', img: 'images/syrups.webp', cls: 'right-[4%] top-[56%] md:right-[9%] md:top-[40%]' },
-  { tag: 'Machines', name: 'Espresso Machines', img: 'images/machines.webp', cls: 'left-[6%] bottom-[6%] md:left-[22%] md:bottom-[14%]' },
+  { tag: 'Capsules', name: 'Espresso Capsules', img: 'images/capsules.webp', cls: 'md:left-[63%] md:top-[18%]' },
+  { tag: 'Syrups', name: 'Syrups & Sauces', img: 'images/syrups.webp', cls: 'md:right-[9%] md:top-[40%]' },
+  { tag: 'Machines', name: 'Espresso Machines', img: 'images/machines.webp', cls: 'md:left-[22%] md:bottom-[14%]' },
 ]
 
 const beanSrcs = ['images/bean-b6.webp', 'images/bean-b7.webp', 'images/bean-b8.webp', 'images/bean-b9.webp']
@@ -154,7 +154,7 @@ function Product({ id }) {
   }
   return (
     <>
-      <div className="absolute inset-x-[-14%] bottom-[8%] md:inset-x-auto md:bottom-[10%] md:left-[50%] md:w-[52%] md:-translate-x-1/2">
+      <div className="absolute bottom-[max(25%,12rem)] left-1/2 w-[min(92vw,36svh)] -translate-x-1/2 md:inset-x-auto md:bottom-[10%] md:left-[50%] md:w-[52%] md:-translate-x-1/2">
         <div className="relative">
           <FloorShadow className="bottom-[2%] w-[70%]" />
           <div data-float>
@@ -208,6 +208,8 @@ function Product({ id }) {
           </div>
         </div>
       </div>
+      {/* phones: the cards sit in a row under the product; larger screens: they float around it */}
+      <div className="absolute inset-x-4 bottom-[max(10%,5.5rem)] z-20 flex justify-center gap-2 md:contents">
       {rangeCards.map((c) => (
         <a
           key={c.name}
@@ -215,7 +217,7 @@ function Product({ id }) {
           href={SHOP_URL}
           target="_blank"
           rel="noreferrer"
-          className={`group absolute z-20 w-28 md:w-40 ${c.cls}`}
+          className={`group relative w-[31%] max-w-36 md:absolute md:z-20 md:w-40 md:max-w-none ${c.cls}`}
         >
           <span
             data-card-float
@@ -225,13 +227,14 @@ function Product({ id }) {
               {c.tag}
               <span className="text-[10px] opacity-50">↗</span>
             </span>
-            <span className="mt-2 block h-14 overflow-hidden rounded-xl bg-white p-2 md:h-24">
+            <span className="mt-2 block h-12 overflow-hidden rounded-xl bg-white p-1.5 md:h-24 md:p-2">
               <img src={c.img} alt="" className="size-full object-contain" />
             </span>
-            <span className="mt-2 block text-[10px] leading-tight font-semibold opacity-70 md:text-[11px]">{c.name}</span>
+            <span className="mt-2 hidden text-[11px] leading-tight font-semibold opacity-70 md:block">{c.name}</span>
           </span>
         </a>
       ))}
+      </div>
     </>
   )
 }
@@ -493,7 +496,7 @@ export default function Chapters() {
                 <div data-ghost-in className={`flex ${s.ghostAlign ?? 'justify-center'}`}>
                   <div
                     data-ghost-drift
-                    className={`font-display leading-none whitespace-nowrap ${s.ghostSize ?? 'text-[30vw] md:text-[min(19vw,34vh)]'} ${s.ghostCls}`}
+                    className={`font-display leading-none whitespace-nowrap ${s.ghostSize ?? 'text-[22vw] md:text-[min(19vw,34vh)]'} ${s.ghostCls}`}
                     style={{ fontWeight: 700, fontVariationSettings: '"SOFT" 100, "WONK" 1, "opsz" 144' }}
                   >
                     {s.ghost}
