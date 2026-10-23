@@ -23,9 +23,9 @@ const scenes = [
     textCls: 'text-ink',
     ghostCls: 'text-[#6b4634]',
     // the machine needs the right half, so the word sits under the text on the left instead
-    ghostWrap: 'top-[41%] md:top-[10%] md:pl-[11vw] lg:top-[63%]',
+    ghostWrap: 'bottom-[22%] opacity-45 md:bottom-auto md:opacity-100 md:top-[10%] md:pl-[11vw] lg:top-[63%]',
     ghostAlign: 'justify-center md:justify-start',
-    ghostSize: 'text-[22vw] md:text-[13vw] lg:text-[min(8.8vw,19vh)]',
+    ghostSize: 'text-[26vw] md:text-[13vw] lg:text-[min(8.8vw,19vh)]',
     waveFill: '#efe5d6',
     bg: [
       'linear-gradient(112deg, transparent 38%, rgba(255,255,255,.45) 47%, transparent 58%)',
@@ -113,7 +113,7 @@ function Product({ id }) {
   if (id === 'brew') {
     return (
       // Sized by height and kept to the right of the text column on large screens, so they never overlap
-      <div className="absolute bottom-[7%] left-1/2 aspect-[861/900] h-[min(36svh,76vw)] -translate-x-1/2 md:left-[60%] md:h-[min(40svh,58vw)] lg:bottom-[10%] lg:left-[max(50vw,calc(11vw+25rem))] lg:h-[min(62svh,40vw)] lg:translate-x-0">
+      <div className="absolute bottom-[7%] left-1/2 aspect-[861/900] h-[min(34svh,72vw)] -translate-x-1/2 md:left-[60%] md:h-[min(40svh,58vw)] lg:bottom-[10%] lg:left-[max(50vw,calc(11vw+25rem))] lg:h-[min(62svh,40vw)] lg:translate-x-0">
         <FloorShadow className="bottom-[-4%] w-[90%]" />
         <div data-product className="absolute inset-0">
           <div data-zoom className="absolute inset-0">
