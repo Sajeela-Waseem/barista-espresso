@@ -370,8 +370,16 @@ export default function Chapters() {
           const prev = sceneEls[i - 1]
           const cur = sceneEls[i]
           const at = sceneStart[i]
-          tl.to(cur, { yPercent: 0, y: 0, duration: 1, ease: 'power1.inOut' }, at)
-            .fromTo(cur.querySelector('[data-wave]'), { scaleY: 1 }, { scaleY: 0, duration: 0.4 }, at + 0.6)
+          // the last scene is revealed by the liquid wave (below) instead of sliding up
+          if (i === n - 1) gsap.set(cur, { yPercent: 0, y: 0 })
+          else
+            tl.to(cur, { yPercent: 0, y: 0, duration: 1, ease: 'power1.inOut' }, at).fromTo(
+              cur.querySelector('[data-wave]'),
+              { scaleY: 1 },
+              { scaleY: 0, duration: 0.4 },
+              at + 0.6,
+            )
+          tl
             // outgoing scene keeps moving up like a page
             .to(prev.querySelector('[data-content]'), { yPercent: -35, opacity: 0, duration: 0.6, ease: 'power1.in' }, at)
             .to(prev.querySelector('[data-product-wrap]'), { yPercent: -45, duration: 1 }, at)
@@ -432,30 +440,127 @@ export default function Chapters() {
           })
         }
         gsap.ticker.add(drawStream)
+
+        /* ---------- unit 3→4: a glossy wave of coffee rises and reveals "Sip" inside it (as in the reel) ---------- */
+        const sipScene = sceneEls[n - 1]
+        const liquidSvg = q('[data-liquid-edge]')[0]
+        const [tint, edgeTop, edgeBottom, shineTop, shineBottom] = q('[data-liquid-edge] path')
+        const wave = { p: 0 }
+        gsap.set(sipScene.querySelector('[data-wave]'), { display: 'none' })
+        tl.to(wave, { p: 1, duration: 1.05, ease: 'power1.inOut' }, sceneStart[n - 1])
+
+        const STEPS = 36
+        const drawLiquid = (time) => {
+          const p = wave.p
+          if (p >= 1) {
+            if (sipScene.style.clipPath !== 'none') sipScene.style.clipPath = 'none'
+            liquidSvg.style.opacity = '0'
+            return
+          }
+          if (p <= 0) {
+            sipScene.style.clipPath = 'polygon(0 0, 0 0, 0 0)'
+            liquidSvg.style.opacity = '0'
+            return
+          }
+          const W = stageEl.clientWidth
+          const H = stageEl.clientHeight
+          // a lens of liquid: thin and wavy at first, then it swells until it covers the screen
+          const mid = 0.74 - 0.24 * p
+          const half = 0.95 * p * p + 0.05 * p
+          const wob = 0.05 * (1 - p)
+          const t = time * 0.35
+          const top = []
+          const bot = []
+          for (let k = 0; k <= STEPS; k++) {
+            const x = k / STEPS
+            const shape = 0.8 + 0.2 * Math.sin(Math.PI * (x * 1.2 + 0.1))
+            const ripple = wob * Math.sin(Math.PI * 2 * (x * 0.9 + t))
+            top.push([x * W, (mid - half * shape + ripple) * H])
+            bot.push([x * W, (mid + half * shape * 0.9 + ripple * 0.8) * H])
+          }
+          const pct = ([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`
+          sipScene.style.clipPath = `polygon(${[...top, ...bot.slice().reverse()].map(pct).join(',')})`
+
+          // glossy amber surfaces along both edges of the wave
+          const th = Math.min(0.07 * H, half * H * 0.6)
+          const band = (edge, dir) =>
+            `M${edge.map(([x, y]) => `${x},${y}`).join(' L')} L${edge
+              .slice()
+              .reverse()
+              .map(([x, y]) => `${x},${y + dir * th}`)
+              .join(' L')} Z`
+          const line = (edge, off) => `M${edge.map(([x, y]) => `${x},${y + off}`).join(' L')}`
+          liquidSvg.setAttribute('viewBox', `0 0 ${W} ${H}`)
+          liquidSvg.style.opacity = '1'
+          // amber tint through the whole wave, clearing as it covers the screen
+          tint.setAttribute('d', `M${top.map(([x, y]) => `${x},${y}`).join(' L')} L${bot.slice().reverse().map(([x, y]) => `${x},${y}`).join(' L')} Z`)
+          tint.setAttribute('fill-opacity', String(0.42 * (1 - p) * (1 - p)))
+          edgeTop.setAttribute('d', band(top, 1))
+          edgeBottom.setAttribute('d', band(bot, -1))
+          shineTop.setAttribute('d', line(top, th * 0.28))
+          shineBottom.setAttribute('d', line(bot, -th * 0.3))
+        }
+        gsap.ticker.add(drawLiquid)
         // keep the timeline exactly `units` long so scroll position maps to the units above
         tl.set({}, {}, units)
 
-        // Product cards pop in when the last scene arrives (and tuck away when leaving)
-        const cardsTween = gsap.from(q('[data-card]'), {
-          scale: 0.5,
-          opacity: 0,
-          y: 40,
-          rotate: (i) => (i % 2 ? 8 : -8),
-          duration: 0.8,
-          stagger: 0.1,
-          ease: 'back.out(1.7)',
-          paused: true,
-        })
+        /* ---------- product cards burst out from behind the glass, tumbling, then float around it ---------- */
+        const cardEls = q('[data-card]')
+        const burstFrom = (el) => {
+          const g = glassFull[0].getBoundingClientRect()
+          const c = el.getBoundingClientRect()
+          return { x: g.left + g.width * 0.42 - (c.left + c.width / 2), y: g.top + g.height * 0.35 - (c.top + c.height / 2) }
+        }
+        let cardsTween = null
+        const makeCards = () => {
+          cardsTween?.progress(0).kill()
+          gsap.set(cardEls, { clearProps: 'transform,opacity' })
+          cardsTween = gsap.fromTo(
+            cardEls,
+            {
+              x: (i, el) => burstFrom(el).x,
+              y: (i, el) => burstFrom(el).y,
+              scale: 0.15,
+              opacity: 0,
+              rotationX: (i) => [65, -55, 70][i % 3],
+              rotationY: (i) => [-80, 70, 45][i % 3],
+              rotation: (i) => [-35, 30, -20][i % 3],
+              transformPerspective: 900,
+            },
+            {
+              x: 0,
+              y: 0,
+              scale: 1,
+              opacity: 1,
+              rotationX: 0,
+              rotationY: 0,
+              rotation: (i) => [-4, 5, -3][i % 3],
+              duration: 1.15,
+              stagger: 0.12,
+              ease: 'back.out(1.3)',
+              paused: true,
+            },
+          )
+        }
+        makeCards()
+        let cardsOut = false
         tl.eventCallback('onUpdate', () => {
-          // scene 3 slides in over 3→4; cards pop in near the end of that
-          if (tl.progress() > 3.6 / units) cardsTween.play()
-          else if (tl.progress() < 3.1 / units) cardsTween.reverse()
+          // the wave covers the screen at ~unit 3.9; cards burst out then (and tuck back when scrolling up)
+          if (tl.progress() > 3.85 / units && !cardsOut) {
+            cardsOut = true
+            makeCards()
+            cardsTween.play()
+          } else if (tl.progress() < 3.5 / units && cardsOut) {
+            cardsOut = false
+            cardsTween.reverse()
+          }
         })
 
         /* ---------- mouse parallax (desktop) ---------- */
         if (!window.matchMedia('(pointer: fine)').matches)
           return () => {
             gsap.ticker.remove(drawStream)
+            gsap.ticker.remove(drawLiquid)
             trigger.current = null
           }
         const movers = [
@@ -479,6 +584,7 @@ export default function Chapters() {
         return () => {
           stage.removeEventListener('mousemove', onMove)
           gsap.ticker.remove(drawStream)
+          gsap.ticker.remove(drawLiquid)
           trigger.current = null
         }
       })
@@ -580,6 +686,27 @@ export default function Chapters() {
             </div>
           </article>
         ))}
+
+        {/* glossy amber edges of the liquid wave that reveals "Sip" (shapes are drawn in Chapters' timeline) */}
+        <svg data-liquid-edge className="pointer-events-none absolute inset-0 z-[4] size-full opacity-0" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="liquid-top" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#3a1a0a" stopOpacity=".95" />
+              <stop offset=".25" stopColor="#8a4a1e" stopOpacity=".85" />
+              <stop offset="1" stopColor="#c27a3a" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="liquid-bottom" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stopColor="#3a1a0a" stopOpacity=".95" />
+              <stop offset=".3" stopColor="#b8702f" stopOpacity=".8" />
+              <stop offset="1" stopColor="#e0a060" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path fill="#b8692c" />
+          <path fill="url(#liquid-top)" />
+          <path fill="url(#liquid-bottom)" />
+          <path fill="none" stroke="#ffe2b8" strokeOpacity=".55" strokeWidth="2.5" strokeLinecap="round" />
+          <path fill="none" stroke="#ffe2b8" strokeOpacity=".45" strokeWidth="2" strokeLinecap="round" />
+        </svg>
 
         {/* the coffee stream from the can in scene 2 to the glass in scene 3, drawn above both scenes */}
         <svg data-pour-stream className="pointer-events-none absolute inset-0 z-[5] size-full overflow-visible" aria-hidden="true">
