@@ -466,7 +466,7 @@ export default function Chapters() {
         // Resting spots, relative to the glass: dx/dy in glass widths/heights from its centre.
         // front = drawn in front of the glass, otherwise behind it.
         const SPOTS = [
-          { dx: 0.58, dy: -0.4, rot: 5, front: false }, // Capsules: top right, partly behind the can
+          { dx: 0.74, dy: -0.4, rot: 5, front: true }, // Capsules: top right, just overlapping the can
           { dx: 0.8, dy: 0.06, rot: -4, front: true }, // Syrups: to the right
           { dx: -0.52, dy: 0.2, rot: -6, front: true }, // Machines: low on the front-left, overlapping the glass
         ]
