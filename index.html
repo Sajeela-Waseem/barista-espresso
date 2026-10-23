@@ -10,10 +10,37 @@
     <meta name="theme-color" content="#140d0b" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- only the Fraunces weights/styles the site uses (about 60% smaller than the full family) -->
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,700..800,100,0..1;1,9..144,500,100,1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- first-screen images start downloading right away -->
+    <link rel="preload" as="image" href="/images/machines.webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="/images/logo-white.webp" />
+    <link rel="preload" as="image" href="/images/bean-b6.webp" />
     <title>Barista Espresso — Preserving the art of fine coffee</title>
+    <style>
+      /* Loading screen: shown instantly, removed by src/lib/ready.js once the first screen is ready */
+      #loader { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #f1e8db; transition: opacity .6s ease, visibility .6s; }
+      #loader.done { opacity: 0; visibility: hidden; }
+      #loader .bean { width: 56px; height: 56px; animation: bean-spin 1.4s cubic-bezier(.6,0,.4,1) infinite; }
+      #loader .bar { width: 120px; height: 2px; margin-top: 22px; background: rgba(20,13,11,.12); overflow: hidden; border-radius: 2px; }
+      #loader .bar span { display: block; height: 100%; width: 40%; background: #a8633e; animation: bar-run 1.1s ease-in-out infinite; }
+      @keyframes bean-spin { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(180deg) scale(.88); } 100% { transform: rotate(360deg) scale(1); } }
+      @keyframes bar-run { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+      @media (prefers-reduced-motion: reduce) { #loader .bean, #loader .bar span { animation: none; } }
+    </style>
   </head>
   <body>
+    <div id="loader" aria-hidden="true">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <svg class="bean" viewBox="0 0 64 64">
+          <g transform="rotate(-35 32 32)">
+            <ellipse cx="32" cy="32" rx="15" ry="21" fill="#a8633e" />
+            <path d="M32 12.5c-6 6-6 12.5 0 19.5s6 13.5 0 19.5" fill="none" stroke="#f1e8db" stroke-width="3.6" stroke-linecap="round" />
+          </g>
+        </svg>
+        <div class="bar"><span></span></div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

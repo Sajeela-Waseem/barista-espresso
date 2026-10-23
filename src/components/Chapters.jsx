@@ -3,6 +3,7 @@ import { gsap, useGSAP, MOTION_OK } from '../lib/gsap'
 import { getLenis, scrollToHash } from '../lib/scroll'
 import { SHOP_URL } from '../data'
 import Cup from './Cup'
+import { pageReady } from '../lib/ready'
 
 /*
   Full-screen "chapters" modelled on the reference reel.
@@ -309,15 +310,16 @@ export default function Chapters() {
         )
         gsap.to(q('[data-card-float]'), { y: -10, duration: 2.4, yoyo: true, repeat: -1, ease: 'sine.inOut', stagger: 0.4 })
 
-        /* ---------- first scene plays in on load ---------- */
+        /* ---------- first scene plays in once the loading screen lifts ---------- */
         const first = sceneEls[0]
-        gsap
-          .timeline({ defaults: { ease: 'expo.out' }, delay: 0.1 })
+        const intro = gsap
+          .timeline({ defaults: { ease: 'expo.out' }, paused: true })
           .from(first.querySelectorAll('[data-char]'), { yPercent: 115, rotate: 10, duration: 1.3, stagger: 0.06 })
           .from(first.querySelectorAll('[data-in]'), { y: 26, opacity: 0, duration: 1.1, stagger: 0.08 }, 0.2)
           .from(first.querySelector('[data-product]'), { y: 140, opacity: 0, duration: 1.8 }, 0)
           .from(first.querySelector('[data-ghost-in]'), { yPercent: 50, opacity: 0, duration: 1.8 }, 0.15)
           .from(q('[data-ui]'), { opacity: 0, duration: 1 }, 0.7)
+        pageReady.then(() => intro.play())
 
         /* ---------- pinned scroll sequence (follows the wheel directly, no snapping) ---------- */
         // Scroll "units": 0→1 brews the espresso in scene 1, one unit per scene change,

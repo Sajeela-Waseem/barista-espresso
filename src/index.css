@@ -90,6 +90,14 @@
   margin-bottom: -0.1em;
 }
 
+/* Lazy images fade in once loaded (marked by src/lib/ready.js) */
+img[loading="lazy"] {
+  transition: opacity 0.6s ease;
+}
+img[loading="lazy"]:not([data-loaded]) {
+  opacity: 0;
+}
+
 .marquee-pause:hover .animate-marquee {
   animation-play-state: paused;
 }
