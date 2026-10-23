@@ -12,6 +12,7 @@ export default function Socials() {
           <a
             href={INSTAGRAM_URL}
             aria-label="Instagram"
+            data-magnetic="0.4"
             className="grid size-14 place-items-center rounded-full bg-ink transition-transform duration-500 ease-expo hover:-translate-y-1 hover:rotate-12"
           >
             <img src="images/instagram.webp" alt="" className="size-6 invert" />
@@ -19,6 +20,7 @@ export default function Socials() {
           <a
             href={FACEBOOK_URL}
             aria-label="Facebook"
+            data-magnetic="0.4"
             className="grid size-14 place-items-center rounded-full bg-ink transition-transform duration-500 ease-expo hover:-translate-y-1 hover:-rotate-12"
           >
             <img src="images/facebook.webp" alt="" className="size-7" />
@@ -27,6 +29,7 @@ export default function Socials() {
       </div>
 
       <div className="mt-14">
+        <div data-skew>
         <Marquee duration={45} gap="gap-5 pr-5 py-6">
           {socialImages.map((src, i) => (
             <a
@@ -45,6 +48,7 @@ export default function Socials() {
             </a>
           ))}
         </Marquee>
+        </div>
       </div>
     </section>
   )

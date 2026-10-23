@@ -63,6 +63,7 @@ export function AnimatedButton({ href, children, theme = 'cream', external = fal
       onMouseLeave={() => tl.current?.reverse()}
       onFocus={() => tl.current?.play()}
       onBlur={() => tl.current?.reverse()}
+      data-magnetic="0.25"
       className={`relative inline-flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.14em] ${className}`}
     >
       <span data-c1 className={`grid size-12 place-items-center rounded-full ${color}`}>

@@ -74,7 +74,7 @@ export default function Partners() {
 
   return (
     <div data-header="ink" className="bg-cream px-2 pb-16 md:px-4 md:pb-28">
-      <section id="partner" data-header="cream" ref={root} className="overflow-hidden rounded-[2.5rem] bg-brown py-24 text-cream md:rounded-[3.5rem] md:py-32">
+      <section id="partner" data-header="cream" ref={root} data-grow className="overflow-hidden rounded-[2.5rem] bg-brown py-24 text-cream md:rounded-[3.5rem] md:py-32">
         <div className="mx-auto max-w-7xl px-5 md:px-10">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             <div className="min-w-0">
@@ -134,6 +134,7 @@ export default function Partners() {
             <div data-reveal className="relative min-w-0">
               <div
                 ref={stage}
+                data-tilt="8"
                 className="relative grid aspect-square place-items-center overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_50%_45%,#7a4a38_0%,#2a1813_70%)]"
               >
                 <div className="absolute inset-[10%] animate-spin-slow rounded-full border border-dashed border-cream/20" />
@@ -166,6 +167,7 @@ export default function Partners() {
               <a
                 key={d.title}
                 data-door
+                data-tilt="8"
                 href={d.href}
                 target={d.external ? '_blank' : undefined}
                 rel={d.external ? 'noreferrer' : undefined}
@@ -191,7 +193,7 @@ export default function Partners() {
           <div data-reveal className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-cream/15 pt-10 md:flex-row md:items-end">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-tan">Prefer to talk</p>
-              <a href={PHONE_HREF} className="mt-3 block font-display text-[clamp(2.25rem,5vw,4rem)] leading-none transition-colors hover:text-tan">
+              <a href={PHONE_HREF} data-magnetic="0.15" className="mt-3 block font-display text-[clamp(2.25rem,5vw,4rem)] leading-none transition-colors hover:text-tan">
                 {PHONE}
               </a>
             </div>

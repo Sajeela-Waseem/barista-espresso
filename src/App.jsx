@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import Lenis from 'lenis'
 import { gsap, ScrollTrigger, useGSAP } from './lib/gsap'
 import { setLenis } from './lib/scroll'
+import { initEffects } from './lib/effects'
 import Navbar from './components/Navbar'
 import Chapters from './components/Chapters'
 import Stores from './components/Stores'
@@ -44,6 +45,9 @@ export default function App() {
   }, [])
 
   // Thin progress bar at the top of the page
+  // Shared hover/scroll effects (data-tilt, data-skew, data-pop, ...) for the sections below the chapters
+  useEffect(() => initEffects(document.querySelector('main')), [])
+
   useGSAP(() => {
     gsap.to(progress.current, {
       scaleX: 1,
