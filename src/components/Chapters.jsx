@@ -47,8 +47,8 @@ const scenes = [
       'linear-gradient(115deg, transparent 30%, rgba(255,214,170,.16) 42%, transparent 55%)',
       'linear-gradient(to bottom, #a35f3b 0%, rgba(163,95,59,0) 22%)',
       // a light counter for the glass to stand on, like the reel's pour shot
-      'linear-gradient(to bottom, transparent 0 80%, rgba(0,0,0,.14) 80%, transparent 83%)',
-      'linear-gradient(to bottom, transparent 0 80%, #d9b48f 80%, #e8cfb2 100%)',
+      'linear-gradient(to bottom, transparent 0 82%, rgba(0,0,0,.12) 82%, transparent 85%)',
+      'linear-gradient(to bottom, transparent 0 82%, #efe4d6 82%, #faf5ee 100%)',
       'radial-gradient(65% 70% at 60% 45%, #bd7a51 0%, #a35f3b 50%, #7f4227 100%)',
     ].join(','),
   },
@@ -142,7 +142,7 @@ function Product({ id }) {
   if (id === 'pour') {
     return (
       // top-right, so the can pours straight down into the glass standing in the middle
-      <div className="absolute top-[34%] right-[-46%] w-[118%] md:top-[-9%] md:right-[-6%] md:w-[58%]">
+      <div className="absolute top-[34%] right-[-46%] w-[126%] md:top-[calc(41svh-37vw)] md:right-[-6%] md:w-[71%]">
         <div className="relative">
           <div data-float>
             <div data-product className="relative origin-[80%_60%]">
@@ -190,6 +190,8 @@ function Product({ id }) {
 
 /* The glass from images/hero.webp, cropped out of the photo (the can is cut off on the right) */
 const GLASS_CROP = { l: 0.2, t: 0.28, w: 0.315, h: 0.67 }
+// where the middle of the glass body is across that crop (the ice cubes take up the left part)
+const GLASS_MID = 0.645
 const glassImgStyle = {
   position: 'absolute',
   maxWidth: 'none',
@@ -201,7 +203,7 @@ const glassImgStyle = {
 
 function GlassImage({ full = false, className = '' }) {
   return (
-    <div className={`aspect-[441/528] overflow-hidden [clip-path:inset(0_3.2%_0_0)] ${className}`}>
+    <div className={`aspect-[441/528] overflow-hidden [clip-path:inset(0_3.2%_0_0)] [mask-image:linear-gradient(to_right,#000_92%,transparent_96.8%)] ${className}`}>
       {!full && (
         <img
           data-glass-empty
@@ -444,7 +446,8 @@ export default function Chapters() {
           tiltY += (mouse.x * 12 + Math.sin(time * 0.8) * 3 - tiltY) * 0.08
           travelGlass.style.width = `${w}px`
           travelGlass.style.height = `${h}px`
-          travelGlass.style.transform = `translate(${cx - w / 2}px, ${bottom - h - lift}px) perspective(${w * 4}px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) rotate(${Math.sin(Math.PI * t) * -4}deg)`
+          // GLASS_MID: the glass itself (not the ice beside it) is centred on the slot
+          travelGlass.style.transform = `translate(${cx - w * GLASS_MID}px, ${bottom - h - lift}px) perspective(${w * 4}px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) rotate(${Math.sin(Math.PI * t) * -4}deg)`
         }
         let tiltX = 0
         let tiltY = 0
@@ -563,7 +566,7 @@ export default function Chapters() {
           }
           const s = stageEl.getBoundingClientRect()
           const g = travelGlass.getBoundingClientRect()
-          const cx = g.left - s.left + g.width * 0.5
+          const cx = g.left - s.left + g.width * GLASS_MID
           const cy = g.top - s.top + g.height * 0.45
           orbitCards.forEach((c, i) => {
             const spot = SPOTS[i % SPOTS.length]
@@ -703,7 +706,7 @@ export default function Chapters() {
             {s.id === 'pour' && (
               <div
                 data-glass-slot="pour"
-                className="pointer-events-none absolute bottom-[9%] left-1/2 aspect-[441/528] h-[26svh] -translate-x-1/2 md:bottom-[11%] md:left-[52%] md:h-[min(42svh,32vw)]"
+                className="pointer-events-none absolute bottom-[4%] left-1/2 aspect-[441/528] h-[26svh] -translate-x-1/2 md:bottom-[5%] md:h-[min(44svh,32vw)]"
                 aria-hidden="true"
               >
                 <FloorShadow className="bottom-[-4%] w-[85%]" />
@@ -712,7 +715,7 @@ export default function Chapters() {
             {s.id === 'sip' && (
               <div
                 data-glass-slot="sip"
-                className="pointer-events-none absolute bottom-[12%] left-1/2 aspect-[441/528] h-[32svh] -translate-x-1/2 md:bottom-[10%] md:left-[52%] md:h-[min(56svh,40vw)]"
+                className="pointer-events-none absolute bottom-[12%] left-1/2 aspect-[441/528] h-[32svh] -translate-x-1/2 md:bottom-[10%] md:h-[min(56svh,40vw)]"
                 aria-hidden="true"
               >
                 <FloorShadow className="bottom-[-4%] w-[85%]" />
