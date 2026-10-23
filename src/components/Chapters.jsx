@@ -20,6 +20,10 @@ const scenes = [
     header: 'ink',
     textCls: 'text-ink',
     ghostCls: 'text-[#6b4634]',
+    // the machine needs the right half, so the word sits under the text on the left instead
+    ghostWrap: 'top-[41%] md:top-[10%] md:pl-[11vw] lg:top-[63%]',
+    ghostAlign: 'justify-center md:justify-start',
+    ghostSize: 'text-[22vw] md:text-[13vw] lg:text-[min(8.8vw,19vh)]',
     waveFill: '#efe5d6',
     bg: [
       'linear-gradient(112deg, transparent 38%, rgba(255,255,255,.45) 47%, transparent 58%)',
@@ -174,7 +178,7 @@ function Product({ id }) {
               {/* beans fall into the capsule slot on top and disappear inside */}
               <div
                 data-rain
-                className="pointer-events-none absolute bottom-[87%] left-[51%] h-[16svh] w-[18%] md:h-[24svh] lg:h-[80svh] overflow-hidden"
+                className="pointer-events-none absolute bottom-[87%] left-[51%] h-[8svh] w-[18%] md:h-[24svh] lg:h-[80svh] overflow-hidden"
                 aria-hidden="true"
               >
                 {Array.from({ length: 18 }).map((_, i) => (
@@ -480,12 +484,12 @@ export default function Chapters() {
             )}
 
             {/* one giant word behind the product, below the text block */}
-            <div data-ghost className="pointer-events-none absolute inset-x-0 top-[46%] md:top-[60%]" aria-hidden="true">
+            <div data-ghost className={`pointer-events-none absolute inset-x-0 ${s.ghostWrap ?? 'top-[46%] md:top-[60%]'}`} aria-hidden="true">
               <div data-ghost-mouse>
-                <div data-ghost-in className="flex justify-center">
+                <div data-ghost-in className={`flex ${s.ghostAlign ?? 'justify-center'}`}>
                   <div
                     data-ghost-drift
-                    className={`font-display text-[30vw] leading-none whitespace-nowrap md:text-[min(19vw,34vh)] ${s.ghostCls}`}
+                    className={`font-display leading-none whitespace-nowrap ${s.ghostSize ?? 'text-[30vw] md:text-[min(19vw,34vh)]'} ${s.ghostCls}`}
                     style={{ fontWeight: 700, fontVariationSettings: '"SOFT" 100, "WONK" 1, "opsz" 144' }}
                   >
                     {s.ghost}
