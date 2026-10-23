@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { gsap, useGSAP, MOTION_OK } from '../lib/gsap'
 import { getLenis, scrollToHash } from '../lib/scroll'
 import { SHOP_URL } from '../data'
+import Cup from './Cup'
 
 /*
   Full-screen "chapters" modelled on the reference reel.
@@ -103,67 +104,6 @@ function Steam({ className }) {
   )
 }
 
-/*
-  Branded paper cup + espresso stream, drawn in the machine photo's coordinates.
-  The SVG box starts at the spout (51% down the photo) and ends at the drip tray.
-  Markup shows the finished state (cup full, no stream) for reduced-motion users;
-  the scroll timeline sets the starting state.
-*/
-function Cup() {
-  return (
-    <svg
-      viewBox="0 0 100 152"
-      className="pointer-events-none absolute top-[51%] left-[69.2%] h-[29%] w-[20%] overflow-visible"
-      aria-hidden="true"
-    >
-      <defs>
-        <clipPath id="cup-mouth">
-          <ellipse cx="50" cy="37" rx="41.5" ry="7.4" />
-        </clipPath>
-        <linearGradient id="cup-body" x1="0" x2="1">
-          <stop offset="0" stopColor="#060606" />
-          <stop offset=".2" stopColor="#2c2c2c" />
-          <stop offset=".42" stopColor="#141414" />
-          <stop offset="1" stopColor="#030303" />
-        </linearGradient>
-        <linearGradient id="cup-inner" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#3a3a3a" />
-          <stop offset="1" stopColor="#111" />
-        </linearGradient>
-        <radialGradient id="crema" cx=".45" cy=".4" r=".65">
-          <stop offset="0" stopColor="#dca570" />
-          <stop offset=".5" stopColor="#a8683a" />
-          <stop offset="1" stopColor="#4f250f" />
-        </radialGradient>
-        <linearGradient id="espresso-stream" x1="0" x2="1">
-          <stop offset="0" stopColor="#2b1206" />
-          <stop offset=".45" stopColor="#8a4a20" />
-          <stop offset="1" stopColor="#3a1808" />
-        </linearGradient>
-      </defs>
-
-      {/* back of the cup: shadow, inside wall and the coffee surface */}
-      <g data-cup>
-        <ellipse cx="50" cy="147" rx="44" ry="6" fill="rgba(0,0,0,.4)" />
-        <ellipse cx="50" cy="37" rx="42.5" ry="8" fill="url(#cup-inner)" />
-        <g clipPath="url(#cup-mouth)">
-          <ellipse data-liquid cx="50" cy="40" rx="41" ry="7.2" fill="url(#crema)" />
-        </g>
-      </g>
-
-      {/* espresso stream from the spout */}
-      <rect data-stream x="48" y="2.6" width="4" height="0" rx="2" fill="url(#espresso-stream)" />
-
-      {/* front of the cup */}
-      <g data-cup>
-        <path d="M7.5 37 L17 145 A33 6 0 0 0 83 145 L92.5 37 A42.5 8 0 0 1 7.5 37 Z" fill="url(#cup-body)" />
-        <path d="M14 48 L21 138 L27 139 L21 48 Z" fill="rgba(255,255,255,.07)" />
-        <ellipse cx="50" cy="37" rx="42.5" ry="8" fill="none" stroke="#3b3b3b" strokeWidth="1.6" />
-        <image href="images/logo-white.webp" x="25" y="82" width="50" height="15" preserveAspectRatio="xMidYMid meet" />
-      </g>
-    </svg>
-  )
-}
 
 function Product({ id }) {
   if (id === 'brew') {
@@ -185,7 +125,7 @@ function Product({ id }) {
                   <img key={i} data-drop src={beanSrcs[i % beanSrcs.length]} alt="" className="absolute top-0 left-1/2 w-4 opacity-0 md:w-6 lg:w-7" />
                 ))}
               </div>
-              <Cup />
+              <Cup id="brew-cup" stream />
               <div data-cup-steam className="absolute top-[36%] left-[71%] h-[22%] w-[16%]">
                 <Steam className="inset-0" />
               </div>

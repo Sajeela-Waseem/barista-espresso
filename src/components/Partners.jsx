@@ -3,6 +3,7 @@ import { gsap, useGSAP, MOTION_OK } from '../lib/gsap'
 import { audiences, doors, PHONE, PHONE_HREF } from '../data'
 import { ArrowIcon, Eyebrow, RevealText, useRevealChildren } from './ui'
 import { scrollToHash } from '../lib/scroll'
+import Cup from './Cup'
 
 export default function Partners() {
   const root = useRef(null)
@@ -34,7 +35,7 @@ export default function Partners() {
       return
     }
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    gsap.fromTo(stage.current.querySelector('img'), { opacity: 0, scale: 1.12, rotate: -6 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.9, ease: 'expo.out' })
+    gsap.fromTo(stage.current.querySelector('[data-shot]'), { opacity: 0, scale: 1.12, rotate: -6 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.9, ease: 'expo.out' })
     gsap.fromTo(pane.current.children, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.7, stagger: 0.06, ease: 'power3.out' })
   }, [cur])
 
@@ -78,7 +79,7 @@ export default function Partners() {
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             <div className="min-w-0">
               <Eyebrow className="text-tan">For business</Eyebrow>
-              <RevealText className="mt-5 font-display text-[clamp(3.5rem,9vw,8rem)] uppercase leading-[0.86] tracking-tight">
+              <RevealText className="mt-5 font-display text-[clamp(2.75rem,13vw,8rem)] uppercase lg:text-[clamp(3rem,5vw,5.75rem)] leading-[0.86] tracking-tight">
                 Coffee,
                 <br />
                 <span className="text-tan">handled.</span>
@@ -135,13 +136,22 @@ export default function Partners() {
               >
                 <div className="absolute inset-[10%] animate-spin-slow rounded-full border border-dashed border-cream/20" />
                 <div className="absolute inset-[5%] bg-[radial-gradient(closest-side,rgba(224,198,153,.18),transparent)]" />
-                <img
-                  key={a.img}
-                  src={a.img}
-                  alt={a.title}
-                  className="relative max-h-[72%] max-w-[72%] object-contain drop-shadow-[0_40px_40px_rgba(0,0,0,.5)]"
-                  loading="lazy"
-                />
+                {a.img.includes('machines') ? (
+                  // the machine gets a Barista cup on its drip tray
+                  <div key={a.img} data-shot className="relative aspect-[861/900] h-[72%] drop-shadow-[0_40px_40px_rgba(0,0,0,.5)]">
+                    <img src={a.img} alt={a.title} className="absolute inset-0 size-full" loading="lazy" />
+                    <Cup id="office-cup" />
+                  </div>
+                ) : (
+                  <img
+                    key={a.img}
+                    data-shot
+                    src={a.img}
+                    alt={a.title}
+                    className="relative max-h-[72%] max-w-[72%] object-contain drop-shadow-[0_40px_40px_rgba(0,0,0,.5)]"
+                    loading="lazy"
+                  />
+                )}
                 <span className="absolute top-6 left-6 rounded-full bg-cream/10 px-4 py-2 text-xs uppercase tracking-[0.2em]">
                   {String(cur + 1).padStart(2, '0')} / {String(audiences.length).padStart(2, '0')}
                 </span>
