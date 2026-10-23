@@ -72,7 +72,7 @@ export default function Partners() {
   const a = audiences[cur]
 
   return (
-    <div data-header="ink" className="bg-cream px-2 md:px-4">
+    <div data-header="ink" className="bg-cream px-2 pb-16 md:px-4 md:pb-28">
       <section id="partner" data-header="cream" ref={root} className="overflow-hidden rounded-[2.5rem] bg-brown py-24 text-cream md:rounded-[3.5rem] md:py-32">
         <div className="mx-auto max-w-7xl px-5 md:px-10">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
