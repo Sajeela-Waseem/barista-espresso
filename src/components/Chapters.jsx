@@ -141,10 +141,24 @@ function Product({ id }) {
       <div className="absolute right-[-22%] bottom-[10%] w-[128%] md:top-[4%] md:right-[-2%] md:bottom-auto md:w-[64%]">
         <div className="relative">
           <div data-float>
-            <img data-product src="images/right-way.webp" alt="Barista iced coffee can pouring a coffee splash" className="w-full origin-[80%_60%]" />
+            <div data-product className="relative origin-[80%_60%]">
+              {/* the photo as shot, with its splash */}
+              <img data-pour-full src="images/right-way.webp" alt="Barista iced coffee can pouring a coffee splash" className="w-full" />
+              {/* the same photo without the splash: this one tilts to pour into the glass in the next section */}
+              <div data-pour-tilt className="absolute inset-0 opacity-0">
+                <img
+                  src="images/right-way.webp"
+                  alt=""
+                  aria-hidden="true"
+                  className="size-full [clip-path:polygon(26%_44%,36.5%_23%,48%_0,100%_0,100%_100%,26%_100%)]"
+                />
+                {/* the can's opening: the coffee stream starts here */}
+                <span data-can-mouth className="absolute top-[39%] left-[28%] size-px" />
+              </div>
+            </div>
           </div>
           {/* coffee drops falling from the splash */}
-          <div className="pointer-events-none absolute top-[24%] left-[8%] h-[60%] w-[26%]" aria-hidden="true">
+          <div data-pour-drops className="pointer-events-none absolute top-[24%] left-[8%] h-[60%] w-[26%]" aria-hidden="true">
             {Array.from({ length: 10 }).map((_, i) => (
               <span key={i} data-coffee-drop className="absolute top-0 block rounded-full bg-[#4a230f] opacity-0" />
             ))}
@@ -160,9 +174,9 @@ function Product({ id }) {
           <FloorShadow className="bottom-[2%] w-[70%]" />
           <div data-float>
             {/*
-              The photo is split into the glass (left of 50.5%) and the can (50.5–72.5%) so the can
-              can lift and pour on its own. The "empty" glass is the same photo washed out; the full
-              glass is revealed from the bottom up as the coffee pours. Markup = finished state.
+              The photo is split into the glass (left of 50.5%) and the can (right of it). The "empty"
+              glass is the same photo washed out; the full glass is revealed from the bottom up as the
+              stream from the can in scene 2 pours in. Markup = finished state.
             */}
             <div data-product className="relative">
               <img src="images/hero.webp" alt="" aria-hidden="true" className="invisible w-full" />
@@ -173,26 +187,6 @@ function Product({ id }) {
                 aria-hidden="true"
                 className="absolute inset-0 size-full opacity-0 [clip-path:inset(0_49.5%_0_0)] [filter:grayscale(1)_brightness(2.3)_contrast(.4)]"
               />
-              <svg data-can-pour viewBox="0 0 1400 788" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible" aria-hidden="true">
-                <defs>
-                  <linearGradient id="iced-stream" x1="0" x2="1">
-                    <stop offset="0" stopColor="#5b3219" />
-                    <stop offset=".5" stopColor="#b47a4c" />
-                    <stop offset="1" stopColor="#6b3c1f" />
-                  </linearGradient>
-                </defs>
-                <path
-                  data-can-stream
-                  d="M567 173 C 562 260, 556 420, 552 700"
-                  pathLength="1"
-                  fill="none"
-                  stroke="url(#iced-stream)"
-                  strokeWidth="14"
-                  strokeLinecap="round"
-                  strokeDasharray="1 1"
-                  strokeDashoffset="1"
-                />
-              </svg>
               <img
                 data-glass-full
                 src="images/hero.webp"
@@ -203,7 +197,7 @@ function Product({ id }) {
                 data-can
                 src="images/hero.webp"
                 alt="Barista iced coffee can"
-                className="absolute inset-0 size-full origin-[61.25%_50%] [clip-path:inset(0_27.5%_0_50.5%)]"
+                className="absolute inset-0 size-full [clip-path:inset(0_27.5%_0_50.5%)]"
               />
             </div>
           </div>
@@ -322,9 +316,13 @@ export default function Chapters() {
         pageReady.then(() => intro.play())
 
         /* ---------- pinned scroll sequence (follows the wheel directly, no snapping) ---------- */
-        // Scroll "units": 0→1 brews the espresso in scene 1, one unit per scene change,
-        // and a last unit where the can pours into the glass in scene 3
-        const units = n + 1
+        // Scroll "units":
+        //   0→1  scene 1: espresso pours into the cup
+        //   1→2  scene 2 slides in
+        //   2→3  scene 2: the hand tilts the can and coffee starts pouring down
+        //   3→4  scene 3 slides in under the stream; the glass fills (until ~4.5)
+        const sceneStart = [0, 1, 3]
+        const units = 5
         const tl = gsap.timeline({
           defaults: { ease: 'none' },
           scrollTrigger: {
@@ -336,7 +334,7 @@ export default function Chapters() {
             anticipatePin: 1,
             onUpdate: (self) => {
               const u = self.progress * units
-              const i = u < 1.5 ? 0 : Math.min(n - 1, Math.round(u - 1))
+              const i = u < 1.5 ? 0 : u < 3.5 ? 1 : 2
               if (i !== activeRef.current) {
                 activeRef.current = i
                 setActive(i)
@@ -371,7 +369,7 @@ export default function Chapters() {
         for (let i = 1; i < n; i++) {
           const prev = sceneEls[i - 1]
           const cur = sceneEls[i]
-          const at = i
+          const at = sceneStart[i]
           tl.to(cur, { yPercent: 0, y: 0, duration: 1, ease: 'power1.inOut' }, at)
             .fromTo(cur.querySelector('[data-wave]'), { scaleY: 1 }, { scaleY: 0, duration: 0.4 }, at + 0.6)
             // outgoing scene keeps moving up like a page
@@ -391,22 +389,51 @@ export default function Chapters() {
             )
         }
 
-        /* ---------- last unit: the can lifts, tilts over the glass and pours it full ---------- */
-        const can = q('[data-can]')
-        const canStream = q('[data-can-stream]')
+        /* ---------- scene 2 → 3: the can pours one stream that lands in the glass below ---------- */
         const glassFull = q('[data-glass-full]')
-        const pourAt = n
+        const pourStream = q('[data-pour-stream] path')
+        const mouth = q('[data-can-mouth]')[0]
+        const stageEl = q('[data-stage]')[0]
+        // grow: how far the stream's front has travelled (0 = at the can, 1 = in the glass)
+        // cut: how far its tail has left the can (stream ends when cut reaches grow)
+        // fill: top of the visible coffee in the glass, as a share of the photo height
+        const pour = { grow: 0, cut: 0, fill: 0.9 }
         gsap.set(q('[data-glass-empty]'), { opacity: 0.7 })
         gsap.set(glassFull, { clipPath: 'inset(90% 49.5% 0% 0%)' })
-        tl.to(can, { yPercent: -10, duration: 0.12, ease: 'power1.out' }, pourAt)
-          // lip of the can ends up just above the middle of the glass
-          .to(can, { rotation: -80, xPercent: 7.9, yPercent: -38.3, duration: 0.22, ease: 'power1.inOut' }, pourAt + 0.1)
-          .to(canStream, { strokeDashoffset: 0, duration: 0.06 }, pourAt + 0.3)
-          .to(glassFull, { clipPath: 'inset(0% 49.5% 0% 0%)', duration: 0.44, ease: 'power1.inOut' }, pourAt + 0.33)
-          // last of the stream falls into the glass, then the can goes back
-          .to(canStream, { strokeDashoffset: -1, duration: 0.06 }, pourAt + 0.77)
-          .to(can, { rotation: 0, xPercent: 0, yPercent: 0, duration: 0.18, ease: 'power2.inOut' }, pourAt + 0.8)
-        gsap.to(canStream, { attr: { 'stroke-width': 11 }, duration: 0.14, yoyo: true, repeat: -1, ease: 'sine.inOut' })
+        tl.to(q('[data-pour-full]'), { opacity: 0, duration: 0.12 }, 2.05)
+          .to(q('[data-pour-drops]'), { opacity: 0, duration: 0.12 }, 2.05)
+          .to(q('[data-pour-tilt]'), { opacity: 1, duration: 0.1 }, 2.05)
+          .to(q('[data-pour-tilt]'), { rotation: -38, transformOrigin: '72% 70%', duration: 0.35, ease: 'power2.inOut' }, 2.05)
+          .to(pour, { grow: 1, duration: 1.3, ease: 'power1.in' }, 2.35)
+          .to(pour, { fill: 0, duration: 0.9, ease: 'power1.inOut' }, 3.65)
+          .to(glassFull, { clipPath: 'inset(0% 49.5% 0% 0%)', duration: 0.9, ease: 'power1.inOut' }, 3.65)
+          .to(pour, { cut: 1, duration: 0.18, ease: 'power1.in' }, 4.35)
+
+        // Draw the stream every frame from the can's opening to the coffee surface in the glass.
+        // Both move (scenes slide, products float), so the ends are measured live.
+        const drawStream = () => {
+          if (pour.grow <= pour.cut) {
+            pourStream.forEach((p) => p.setAttribute('d', ''))
+            return
+          }
+          const s = stageEl.getBoundingClientRect()
+          const m = mouth.getBoundingClientRect()
+          const g = glassFull[0].getBoundingClientRect()
+          const x0 = m.left - s.left
+          const y0 = m.top - s.top
+          const x1 = g.left - s.left + g.width * 0.405
+          const y1 = g.top - s.top + g.height * Math.max(pour.fill, 0.4)
+          // leaves the can sideways, then falls (quadratic curve)
+          const d = `M${x0} ${y0} Q${x0 + (x1 - x0) * 0.75} ${y0 + (y1 - y0) * 0.08} ${x1} ${y1}`
+          pourStream.forEach((p) => {
+            p.setAttribute('d', d)
+            p.setAttribute('stroke-dasharray', `${pour.grow - pour.cut} 2`)
+            p.setAttribute('stroke-dashoffset', String(-pour.cut))
+          })
+        }
+        gsap.ticker.add(drawStream)
+        // keep the timeline exactly `units` long so scroll position maps to the units above
+        tl.set({}, {}, units)
 
         // Product cards pop in when the last scene arrives (and tuck away when leaving)
         const cardsTween = gsap.from(q('[data-card]'), {
@@ -420,13 +447,17 @@ export default function Chapters() {
           paused: true,
         })
         tl.eventCallback('onUpdate', () => {
-          // units: scene 3 slides in over 2→3 (cards at 2.6), the can pours over 3→4
-          if (tl.progress() > 2.6 / units) cardsTween.play()
-          else if (tl.progress() < 2.1 / units) cardsTween.reverse()
+          // scene 3 slides in over 3→4; cards pop in near the end of that
+          if (tl.progress() > 3.6 / units) cardsTween.play()
+          else if (tl.progress() < 3.1 / units) cardsTween.reverse()
         })
 
         /* ---------- mouse parallax (desktop) ---------- */
-        if (!window.matchMedia('(pointer: fine)').matches) return () => (trigger.current = null)
+        if (!window.matchMedia('(pointer: fine)').matches)
+          return () => {
+            gsap.ticker.remove(drawStream)
+            trigger.current = null
+          }
         const movers = [
           ...q('[data-mouse]').map((el) => ({ el, d: 1 })),
           ...q('[data-ghost-mouse]').map((el) => ({ el, d: -0.5 })),
@@ -447,6 +478,7 @@ export default function Chapters() {
         stage.addEventListener('mousemove', onMove)
         return () => {
           stage.removeEventListener('mousemove', onMove)
+          gsap.ticker.remove(drawStream)
           trigger.current = null
         }
       })
@@ -461,9 +493,9 @@ export default function Chapters() {
       document.querySelectorAll('[data-scene]')[target]?.scrollIntoView({ behavior: 'smooth' })
       return
     }
-    // scene 1 starts at unit 0; every later scene sits one unit after the espresso pour
-    const unit = target === 0 ? 0 : target + 1
-    const y = st.start + (st.end - st.start) * (unit / (scenes.length + 1))
+    // where each scene is fully in view, in scroll units (see the timeline)
+    const unit = [0, 2, 4][target]
+    const y = st.start + (st.end - st.start) * (unit / 5)
     const lenis = getLenis()
     if (lenis) lenis.scrollTo(y, { duration: 1.4 })
     else window.scrollTo({ top: y, behavior: 'smooth' })
@@ -548,6 +580,12 @@ export default function Chapters() {
             </div>
           </article>
         ))}
+
+        {/* the coffee stream from the can in scene 2 to the glass in scene 3, drawn above both scenes */}
+        <svg data-pour-stream className="pointer-events-none absolute inset-0 z-[5] size-full overflow-visible" aria-hidden="true">
+          <path pathLength="1" fill="none" stroke="#7a4524" strokeWidth="9" strokeLinecap="round" strokeDasharray="0 2" />
+          <path pathLength="1" fill="none" stroke="#c28d5e" strokeOpacity=".55" strokeWidth="3" strokeLinecap="round" strokeDasharray="0 2" />
+        </svg>
 
         {/* slider controls like the reel: white round arrows + dots */}
         <div data-ui className="pointer-events-none absolute inset-0 z-30">
