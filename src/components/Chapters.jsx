@@ -70,9 +70,9 @@ const scenes = [
 ]
 
 const rangeCards = [
-  { tag: 'Capsules', name: 'Espresso Capsules', img: 'images/capsules.webp', cls: 'md:left-[63%] md:top-[18%]' },
-  { tag: 'Syrups', name: 'Syrups & Sauces', img: 'images/syrups.webp', cls: 'md:right-[9%] md:top-[40%]' },
-  { tag: 'Machines', name: 'Espresso Machines', img: 'images/machines.webp', cls: 'md:left-[22%] md:bottom-[14%]' },
+  { tag: 'Capsules', name: 'Espresso Capsules', img: 'images/capsules.webp' },
+  { tag: 'Syrups', name: 'Syrups & Sauces', img: 'images/syrups.webp' },
+  { tag: 'Machines', name: 'Espresso Machines', img: 'images/machines.webp' },
 ]
 
 const beanSrcs = ['images/bean-b6.webp', 'images/bean-b7.webp', 'images/bean-b8.webp', 'images/bean-b9.webp']
@@ -138,7 +138,7 @@ function Product({ id }) {
   }
   if (id === 'pour') {
     return (
-      <div className="absolute right-[-22%] bottom-[10%] w-[128%] md:top-[4%] md:right-[-2%] md:bottom-auto md:w-[64%]">
+      <div className="absolute top-[40%] right-[-22%] w-[128%] md:top-[4%] md:right-[-2%] md:w-[64%]">
         <div className="relative">
           <div data-float>
             <div data-product className="relative origin-[80%_60%]">
@@ -167,70 +167,66 @@ function Product({ id }) {
       </div>
     )
   }
+  // Without motion this static glass and card row is shown; with motion the travelling
+  // glass and the orbiting cards (in the stage, see Chapters) replace it.
   return (
-    <>
-      <div className="absolute bottom-[max(25%,12rem)] left-1/2 w-[min(92vw,36svh)] -translate-x-1/2 md:inset-x-auto md:bottom-[10%] md:left-[50%] md:w-[52%] md:-translate-x-1/2">
-        <div className="relative">
-          <FloorShadow className="bottom-[2%] w-[70%]" />
-          <div data-float>
-            {/*
-              The photo is split into the glass (left of 50.5%) and the can (right of it). The "empty"
-              glass is the same photo washed out; the full glass is revealed from the bottom up as the
-              stream from the can in scene 2 pours in. Markup = finished state.
-            */}
-            <div data-product className="relative">
-              <img src="images/hero.webp" alt="" aria-hidden="true" className="invisible w-full" />
-              <img
-                data-glass-empty
-                src="images/hero.webp"
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 size-full opacity-0 [clip-path:inset(0_49.5%_0_0)] [filter:grayscale(1)_brightness(2.3)_contrast(.4)]"
-              />
-              <img
-                data-glass-full
-                src="images/hero.webp"
-                alt="A glass of Barista iced coffee"
-                className="absolute inset-0 size-full [clip-path:inset(0%_49.5%_0%_0%)]"
-              />
-              <img
-                data-can
-                src="images/hero.webp"
-                alt="Barista iced coffee can"
-                className="absolute inset-0 size-full [clip-path:inset(0_27.5%_0_50.5%)]"
-              />
-            </div>
-          </div>
-        </div>
+    <div data-static-sip>
+      <div data-product className="absolute bottom-[14%] left-1/2 h-[30svh] -translate-x-1/2 md:bottom-[10%] md:left-[55%] md:h-[min(50svh,38vw)]">
+        <FloorShadow className="bottom-[-3%] w-[80%]" />
+        <GlassImage full className="relative h-full" />
       </div>
-      {/* phones: the cards sit in a row under the product; larger screens: they float around it */}
-      <div className="absolute inset-x-4 bottom-[max(10%,5.5rem)] z-20 flex justify-center gap-2 md:contents">
-      {rangeCards.map((c) => (
-        <a
-          key={c.name}
-          data-card
-          href={SHOP_URL}
-          target="_blank"
-          rel="noreferrer"
-          className={`group relative w-[31%] max-w-36 md:absolute md:z-20 md:w-40 md:max-w-none ${c.cls}`}
-        >
-          <span
-            data-card-float
-            className="block rounded-2xl border border-white/60 bg-[#f7f1ea]/90 p-2.5 text-ink shadow-[0_24px_40px_-18px_rgba(0,0,0,.55)] transition-[scale] duration-500 ease-expo group-hover:scale-105 md:p-3"
-          >
-            <span className="flex items-center justify-between font-display text-[13px] font-bold uppercase md:text-[15px]">
-              {c.tag}
-              <span className="text-[10px] opacity-50">↗</span>
-            </span>
-            <span className="mt-2 block h-12 overflow-hidden rounded-xl bg-white p-1.5 md:h-24 md:p-2">
-              <img src={c.img} alt="" className="size-full object-contain" />
-            </span>
-            <span className="mt-2 hidden text-[11px] leading-tight font-semibold opacity-70 md:block">{c.name}</span>
-          </span>
-        </a>
-      ))}
+      <div className="absolute inset-x-4 bottom-[3%] z-20 flex justify-center gap-2">
+        {rangeCards.map((c) => (
+          <RangeCard key={c.name} c={c} className="w-[31%] max-w-36" />
+        ))}
       </div>
-    </>
+    </div>
+  )
+}
+
+/* The glass from images/hero.webp, cropped out of the photo (the can is cut off on the right) */
+const GLASS_CROP = { l: 0.2, t: 0.28, w: 0.315, h: 0.67 }
+const glassImgStyle = {
+  position: 'absolute',
+  maxWidth: 'none',
+  width: `${100 / GLASS_CROP.w}%`,
+  height: `${100 / GLASS_CROP.h}%`,
+  left: `${(-GLASS_CROP.l / GLASS_CROP.w) * 100}%`,
+  top: `${(-GLASS_CROP.t / GLASS_CROP.h) * 100}%`,
+}
+
+function GlassImage({ full = false, className = '' }) {
+  return (
+    <div className={`aspect-[441/528] overflow-hidden [clip-path:inset(0_3.2%_0_0)] ${className}`}>
+      {!full && (
+        <img
+          data-glass-empty
+          src="images/hero.webp"
+          alt=""
+          aria-hidden="true"
+          style={glassImgStyle}
+          className="opacity-70 [filter:grayscale(1)_brightness(2.3)_contrast(.4)]"
+        />
+      )}
+      <img data-glass-full={full ? undefined : ''} src="images/hero.webp" alt="A glass of Barista iced coffee" style={glassImgStyle} />
+    </div>
+  )
+}
+
+function RangeCard({ c, className = '', ...rest }) {
+  return (
+    <a href={SHOP_URL} target="_blank" rel="noreferrer" className={`group block ${className}`} {...rest}>
+      <span className="block rounded-2xl border border-white/60 bg-[#f7f1ea]/95 p-2 text-ink shadow-[0_24px_40px_-18px_rgba(0,0,0,.55)] transition-[scale] duration-500 ease-expo group-hover:scale-105 md:p-3">
+        <span className="flex items-center justify-between font-display text-[12px] font-bold uppercase md:text-[15px]">
+          {c.tag}
+          <span className="text-[10px] opacity-50">↗</span>
+        </span>
+        <span className="mt-2 block h-12 overflow-hidden rounded-xl bg-white p-1.5 md:h-24 md:p-2">
+          <img src={c.img} alt="" className="size-full object-contain" />
+        </span>
+        <span className="mt-2 hidden text-[11px] leading-tight font-semibold opacity-70 md:block">{c.name}</span>
+      </span>
+    </a>
   )
 }
 
@@ -302,7 +298,6 @@ export default function Chapters() {
         q('[data-float]').forEach((el, i) =>
           gsap.to(el, { y: -12, rotation: i === 1 ? -2 : 0.6, duration: 3 + i * 0.4, yoyo: true, repeat: -1, ease: 'sine.inOut' }),
         )
-        gsap.to(q('[data-card-float]'), { y: -10, duration: 2.4, yoyo: true, repeat: -1, ease: 'sine.inOut', stagger: 0.4 })
 
         /* ---------- first scene plays in once the loading screen lifts ---------- */
         const first = sceneEls[0]
@@ -397,28 +392,56 @@ export default function Chapters() {
             )
         }
 
-        /* ---------- scene 2 → 3: the can pours one stream that lands in the glass below ---------- */
-        const glassFull = q('[data-glass-full]')
+        /* ---------- unit 2→3 (in "Pour"): the hand tilts the can and pours the glass full ---------- */
+        // One glass lives in the stage above the scenes. It sits on a slot in "Pour", fills there,
+        // then rides the liquid wave to its slot in "Sip" (unit 3→4), where the cards orbit it.
+        const travelGlass = q('[data-travel-glass]')[0]
+        const glassFull = q('[data-travel-glass] [data-glass-full]')
+        const slotPour = q('[data-glass-slot="pour"]')[0]
+        const slotSip = q('[data-glass-slot="sip"]')[0]
         const pourStream = q('[data-pour-stream] path')
         const mouth = q('[data-can-mouth]')[0]
         const stageEl = q('[data-stage]')[0]
+        gsap.set(q('[data-hero-layer]'), { display: 'block' })
+        gsap.set(q('[data-static-sip]'), { display: 'none' })
         // grow: how far the stream's front has travelled (0 = at the can, 1 = in the glass)
         // cut: how far its tail has left the can (stream ends when cut reaches grow)
-        // fill: top of the visible coffee in the glass, as a share of the photo height
+        // fill: top of the coffee in the glass, as a share of the glass height
         const pour = { grow: 0, cut: 0, fill: 0.9 }
-        gsap.set(q('[data-glass-empty]'), { opacity: 0.7 })
-        gsap.set(glassFull, { clipPath: 'inset(90% 49.5% 0% 0%)' })
+        const move = { t: 0 }
+        gsap.set(glassFull, { clipPath: 'inset(90% 0% 0% 0%)' })
         tl.to(q('[data-pour-full]'), { opacity: 0, duration: 0.12 }, 2.05)
           .to(q('[data-pour-drops]'), { opacity: 0, duration: 0.12 }, 2.05)
           .to(q('[data-pour-tilt]'), { opacity: 1, duration: 0.1 }, 2.05)
           .to(q('[data-pour-tilt]'), { rotation: -38, transformOrigin: '72% 70%', duration: 0.35, ease: 'power2.inOut' }, 2.05)
-          .to(pour, { grow: 1, duration: 1.3, ease: 'power1.in' }, 2.35)
-          .to(pour, { fill: 0, duration: 0.9, ease: 'power1.inOut' }, 3.65)
-          .to(glassFull, { clipPath: 'inset(0% 49.5% 0% 0%)', duration: 0.9, ease: 'power1.inOut' }, 3.65)
-          .to(pour, { cut: 1, duration: 0.18, ease: 'power1.in' }, 4.35)
+          .to(pour, { grow: 1, duration: 0.3, ease: 'power1.in' }, 2.35)
+          .to(pour, { fill: 0, duration: 0.7, ease: 'power1.inOut' }, 2.55)
+          .to(glassFull, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.7, ease: 'power1.inOut' }, 2.55)
+          .to(pour, { cut: 1, duration: 0.12, ease: 'power1.in' }, 3.15)
+          .to(q('[data-pour-tilt]'), { rotation: 0, duration: 0.3, ease: 'power2.inOut' }, 3.25)
+          // the full glass travels with the wave into "Sip"
+          .to(move, { t: 1, duration: 0.9, ease: 'power2.inOut' }, 3.1)
 
-        // Draw the stream every frame from the can's opening to the coffee surface in the glass.
-        // Both move (scenes slide, products float), so the ends are measured live.
+        // Place the glass every frame between its two slots (both move with their scenes)
+        const lerp = (a, b, t) => a + (b - a) * t
+        const placeGlass = (time) => {
+          const s = stageEl.getBoundingClientRect()
+          const a = slotPour.getBoundingClientRect()
+          const b = slotSip.getBoundingClientRect()
+          const t = move.t
+          const h = lerp(a.height, b.height, t)
+          const w = h * (441 / 528)
+          const cx = lerp(a.left + a.width / 2, b.left + b.width / 2, t) - s.left
+          const bottom = lerp(a.bottom, b.bottom, t) - s.top
+          // a small arc on the way, and a gentle float once it has arrived
+          const lift = Math.sin(Math.PI * t) * h * 0.25 + Math.sin(time * 1.6) * 5 * t
+          travelGlass.style.width = `${w}px`
+          travelGlass.style.height = `${h}px`
+          travelGlass.style.transform = `translate(${cx - w / 2}px, ${bottom - h - lift}px) rotate(${Math.sin(Math.PI * t) * -6}deg)`
+        }
+        gsap.ticker.add(placeGlass)
+
+        // Draw the stream every frame from the can's opening to the coffee surface in the glass
         const drawStream = () => {
           if (pour.grow <= pour.cut) {
             pourStream.forEach((p) => p.setAttribute('d', ''))
@@ -426,11 +449,11 @@ export default function Chapters() {
           }
           const s = stageEl.getBoundingClientRect()
           const m = mouth.getBoundingClientRect()
-          const g = glassFull[0].getBoundingClientRect()
+          const g = travelGlass.getBoundingClientRect()
           const x0 = m.left - s.left
           const y0 = m.top - s.top
-          const x1 = g.left - s.left + g.width * 0.405
-          const y1 = g.top - s.top + g.height * Math.max(pour.fill, 0.4)
+          const x1 = g.left - s.left + g.width * 0.62
+          const y1 = g.top - s.top + g.height * Math.max(pour.fill, 0.2)
           // leaves the can sideways, then falls (quadratic curve)
           const d = `M${x0} ${y0} Q${x0 + (x1 - x0) * 0.75} ${y0 + (y1 - y0) * 0.08} ${x1} ${y1}`
           pourStream.forEach((p) => {
@@ -504,63 +527,58 @@ export default function Chapters() {
         // keep the timeline exactly `units` long so scroll position maps to the units above
         tl.set({}, {}, units)
 
-        /* ---------- product cards burst out from behind the glass, tumbling, then float around it ---------- */
-        const cardEls = q('[data-card]')
-        const burstFrom = (el) => {
-          const g = glassFull[0].getBoundingClientRect()
-          const c = el.getBoundingClientRect()
-          return { x: g.left + g.width * 0.42 - (c.left + c.width / 2), y: g.top + g.height * 0.35 - (c.top + c.height / 2) }
-        }
-        let cardsTween = null
-        const makeCards = () => {
-          cardsTween?.progress(0).kill()
-          gsap.set(cardEls, { clearProps: 'transform,opacity' })
-          cardsTween = gsap.fromTo(
-            cardEls,
-            {
-              x: (i, el) => burstFrom(el).x,
-              y: (i, el) => burstFrom(el).y,
-              scale: 0.15,
-              opacity: 0,
-              rotationX: (i) => [65, -55, 70][i % 3],
-              rotationY: (i) => [-80, 70, 45][i % 3],
-              rotation: (i) => [-35, 30, -20][i % 3],
-              transformPerspective: 900,
-            },
-            {
-              x: 0,
-              y: 0,
-              scale: 1,
-              opacity: 1,
-              rotationX: 0,
-              rotationY: 0,
-              rotation: (i) => [-4, 5, -3][i % 3],
-              duration: 1.15,
-              stagger: 0.12,
-              ease: 'back.out(1.3)',
-              paused: true,
-            },
-          )
-        }
-        makeCards()
-        let cardsOut = false
-        tl.eventCallback('onUpdate', () => {
-          // the wave covers the screen at ~unit 3.9; cards burst out then (and tuck back when scrolling up)
-          if (tl.progress() > 3.85 / units && !cardsOut) {
-            cardsOut = true
-            makeCards()
-            cardsTween.play()
-          } else if (tl.progress() < 3.5 / units && cardsOut) {
-            cardsOut = false
-            cardsTween.reverse()
-          }
+        /* ---------- in "Sip": the cards come out from behind the glass and revolve around it ---------- */
+        const orbitCards = q('[data-orbit-card]')
+        const orbit = { r: 0 }
+        let angle = 0
+        let hovering = false
+        orbitCards.forEach((c) => {
+          c.addEventListener('mouseenter', () => (hovering = true))
+          c.addEventListener('mouseleave', () => (hovering = false))
         })
+        tl.to(orbit, { r: 1, duration: 0.6, ease: 'back.out(1.4)' }, 3.75)
+
+        const drawOrbit = (time, dt) => {
+          if (!hovering) angle += (dt / 1000) * 0.42
+          const r = orbit.r
+          if (r <= 0.001) {
+            orbitCards.forEach((c) => (c.style.visibility = 'hidden'))
+            return
+          }
+          const s = stageEl.getBoundingClientRect()
+          const g = travelGlass.getBoundingClientRect()
+          const W = s.width
+          const cx = g.left - s.left + g.width * 0.5
+          const cy = g.top - s.top + g.height * 0.58
+          const rx = Math.min(W * (W < 768 ? 0.36 : 0.3), g.width * 1.5) * r
+          const ry = g.height * 0.2 * r
+          orbitCards.forEach((c, i) => {
+            const a = angle + (i * Math.PI * 2) / orbitCards.length
+            const depth = Math.sin(a) // 1 = in front of the glass, -1 = behind it
+            gsap.set(c, {
+              visibility: 'visible',
+              x: cx + Math.cos(a) * rx,
+              y: cy + depth * ry + (i - 1) * g.height * 0.08,
+              xPercent: -50,
+              yPercent: -50,
+              scale: (0.78 + 0.22 * depth) * (0.25 + 0.75 * r),
+              rotationY: -Math.cos(a) * 28,
+              rotation: Math.cos(a) * 4,
+              transformPerspective: 900,
+              zIndex: depth > 0 ? 3 : 1,
+              opacity: Math.min(1, r * 1.4) * (0.7 + 0.3 * (depth + 1) * 0.5),
+            })
+          })
+        }
+        gsap.ticker.add(drawOrbit)
 
         /* ---------- mouse parallax (desktop) ---------- */
         if (!window.matchMedia('(pointer: fine)').matches)
           return () => {
             gsap.ticker.remove(drawStream)
             gsap.ticker.remove(drawLiquid)
+            gsap.ticker.remove(placeGlass)
+            gsap.ticker.remove(drawOrbit)
             trigger.current = null
           }
         const movers = [
@@ -585,6 +603,8 @@ export default function Chapters() {
           stage.removeEventListener('mousemove', onMove)
           gsap.ticker.remove(drawStream)
           gsap.ticker.remove(drawLiquid)
+          gsap.ticker.remove(placeGlass)
+          gsap.ticker.remove(drawOrbit)
           trigger.current = null
         }
       })
@@ -651,6 +671,26 @@ export default function Chapters() {
               </div>
             </div>
 
+            {/* where the travelling glass stands in this scene (it is drawn in the stage, above the scenes) */}
+            {s.id === 'pour' && (
+              <div
+                data-glass-slot="pour"
+                className="pointer-events-none absolute bottom-[4%] left-[8%] aspect-[441/528] h-[22svh] md:bottom-[8%] md:left-[40%] md:h-[min(34svh,26vw)]"
+                aria-hidden="true"
+              >
+                <FloorShadow className="bottom-[-4%] w-[85%]" />
+              </div>
+            )}
+            {s.id === 'sip' && (
+              <div
+                data-glass-slot="sip"
+                className="pointer-events-none absolute bottom-[14%] left-1/2 aspect-[441/528] h-[30svh] -translate-x-1/2 md:bottom-[10%] md:left-[55%] md:h-[min(50svh,38vw)]"
+                aria-hidden="true"
+              >
+                <FloorShadow className="bottom-[-4%] w-[85%]" />
+              </div>
+            )}
+
             {/* text: left, vertically centred in the upper part */}
             <div
               data-content
@@ -687,6 +727,22 @@ export default function Chapters() {
           </article>
         ))}
 
+        {/* the glass that is filled in "Pour" and carried into "Sip", plus the cards that orbit it there.
+            Hidden until the scroll animation sets it up; positions are set every frame in the timeline code. */}
+        <div data-hero-layer className="pointer-events-none absolute inset-0 z-[5] hidden">
+          <div data-travel-glass className="absolute top-0 left-0 z-[2] will-change-transform">
+            <GlassImage className="size-full" />
+          </div>
+          {rangeCards.map((c) => (
+            <RangeCard
+              key={c.name}
+              c={c}
+              data-orbit-card=""
+              className="pointer-events-auto invisible absolute top-0 left-0 w-[22vw] max-w-28 will-change-transform md:w-36 md:max-w-none"
+            />
+          ))}
+        </div>
+
         {/* glossy amber edges of the liquid wave that reveals "Sip" (shapes are drawn in Chapters' timeline) */}
         <svg data-liquid-edge className="pointer-events-none absolute inset-0 z-[4] size-full opacity-0" preserveAspectRatio="none" aria-hidden="true">
           <defs>
@@ -709,7 +765,7 @@ export default function Chapters() {
         </svg>
 
         {/* the coffee stream from the can in scene 2 to the glass in scene 3, drawn above both scenes */}
-        <svg data-pour-stream className="pointer-events-none absolute inset-0 z-[5] size-full overflow-visible" aria-hidden="true">
+        <svg data-pour-stream className="pointer-events-none absolute inset-0 z-[6] size-full overflow-visible" aria-hidden="true">
           <path pathLength="1" fill="none" stroke="#7a4524" strokeWidth="9" strokeLinecap="round" strokeDasharray="0 2" />
           <path pathLength="1" fill="none" stroke="#c28d5e" strokeOpacity=".55" strokeWidth="3" strokeLinecap="round" strokeDasharray="0 2" />
         </svg>
