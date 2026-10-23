@@ -188,10 +188,17 @@ function Product({ id }) {
   )
 }
 
-/* The glass from images/hero.webp, cropped out of the photo (the can is cut off on the right) */
-const GLASS_CROP = { l: 0.2, t: 0.28, w: 0.315, h: 0.67 }
-// where the middle of the glass body is across that crop (the ice cubes take up the left part)
-const GLASS_MID = 0.645
+/* The whole product photo (glass + can) from images/hero.webp, trimmed to the products */
+const GLASS_CROP = { l: 0.2, t: 0, w: 0.53, h: 0.98 }
+// width / height of the trimmed photo
+const PHOTO_RATIO = (GLASS_CROP.w * 1400) / (GLASS_CROP.h * 788)
+// the photo is centred on its spot
+const GLASS_MID = 0.5
+// where the glass is inside the trimmed photo: its centre, and where the can starts
+const GLASS_CENTER_X = (0.405 - GLASS_CROP.l) / GLASS_CROP.w
+const CAN_LEFT = (0.505 - GLASS_CROP.l) / GLASS_CROP.w
+// share of the photo on the right that is the can (used to clip the glass layers)
+const CAN_CLIP = `${((1 - CAN_LEFT) * 100).toFixed(2)}%`
 const glassImgStyle = {
   position: 'absolute',
   maxWidth: 'none',
@@ -201,26 +208,37 @@ const glassImgStyle = {
   top: `${(-GLASS_CROP.t / GLASS_CROP.h) * 100}%`,
 }
 
+/*
+  Layers: the can (always as photographed), the glass empty (washed out), and the glass
+  full, which is revealed from the bottom up as it is poured. `full` = static, already full.
+*/
 function GlassImage({ full = false, className = '' }) {
   return (
-    <div className={`relative aspect-[441/528] overflow-hidden [clip-path:inset(0_3.2%_0_0)] ${className}`}>
-      {!full && (
-        <img
-          data-glass-empty
-          src="images/hero.webp"
-          alt=""
-          aria-hidden="true"
-          style={glassImgStyle}
-          className="opacity-70 [filter:grayscale(1)_brightness(2.3)_contrast(.4)]"
-        />
+    <div className={`relative aspect-[742/772] overflow-hidden ${className}`}>
+      {full ? (
+        <img src="images/hero.webp" alt="Barista iced coffee can and a glass of iced coffee" style={glassImgStyle} />
+      ) : (
+        <>
+          <img
+            src="images/hero.webp"
+            alt="Barista iced coffee can"
+            style={{ ...glassImgStyle, clipPath: `inset(0 0 0 ${((GLASS_CROP.l + CAN_LEFT * GLASS_CROP.w) * 100).toFixed(2)}%)` }}
+          />
+          <div className="absolute inset-0" style={{ clipPath: `inset(0 ${CAN_CLIP} 0 0)` }}>
+            <img
+              data-glass-empty
+              src="images/hero.webp"
+              alt=""
+              aria-hidden="true"
+              style={glassImgStyle}
+              className="opacity-70 [filter:grayscale(1)_brightness(2.3)_contrast(.4)]"
+            />
+            <div data-glass-full className="absolute inset-0">
+              <img src="images/hero.webp" alt="A glass of Barista iced coffee" style={glassImgStyle} />
+            </div>
+          </div>
+        </>
       )}
-      <img data-glass-full={full ? undefined : ''} src="images/hero.webp" alt="A glass of Barista iced coffee" style={glassImgStyle} />
-      {/* In the photo the can hides the glass's right wall, so it is drawn back in: a dark edge and a light glint */}
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
-        <path d="M96.4 3.5 L94.6 93" fill="none" stroke="rgba(30,18,12,.35)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
-        <path d="M95.5 4 L93.8 92.5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="2.2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <path d="M95 8 L94.4 40" fill="none" stroke="rgba(255,255,255,.75)" strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      </svg>
     </div>
   )
 }
@@ -421,7 +439,7 @@ export default function Chapters() {
         // fill: top of the coffee in the glass, as a share of the glass height
         const pour = { grow: 0, cut: 0, fill: 0.9 }
         const move = { t: 0 }
-        gsap.set(glassFull, { clipPath: 'inset(90% 0% 0% 0%)' })
+        gsap.set(glassFull, { clipPath: 'inset(88% 0% 0% 0%)' })
         tl.to(q('[data-pour-full]'), { opacity: 0, duration: 0.12 }, 2.05)
           .to(q('[data-pour-drops]'), { opacity: 0, duration: 0.12 }, 2.05)
           .to(q('[data-pour-tilt]'), { opacity: 1, duration: 0.1 }, 2.05)
@@ -448,9 +466,15 @@ export default function Chapters() {
         // Resting spots, relative to the glass: dx/dy in glass widths/heights from its centre.
         // front = drawn in front of the glass, otherwise behind it.
         const SPOTS = [
-          { dx: 0.6, dy: -0.36, rot: 5, front: false }, // Capsules: top right, partly behind the glass
-          { dx: 1.0, dy: 0.04, rot: -4, front: true }, // Syrups: to the right
-          { dx: -0.5, dy: 0.22, rot: -6, front: true }, // Machines: low on the front-left, overlapping the glass
+          { dx: 0.58, dy: -0.4, rot: 5, front: false }, // Capsules: top right, partly behind the can
+          { dx: 0.8, dy: 0.06, rot: -4, front: true }, // Syrups: to the right
+          { dx: -0.52, dy: 0.2, rot: -6, front: true }, // Machines: low on the front-left, overlapping the glass
+        ]
+        // phones are too narrow for cards beside the can, so two of them sit above the products
+        const SPOTS_PHONE = [
+          { dx: -0.32, dy: -0.58, rot: -5, front: false },
+          { dx: 0.36, dy: -0.62, rot: 4, front: false },
+          { dx: -0.5, dy: 0.22, rot: -6, front: true },
         ]
         const orbitCards = q('[data-orbit-card]')
         const settle = { r: 0 }
@@ -496,7 +520,7 @@ export default function Chapters() {
           /* ----- glass: travels from its "Pour" spot to its "Sip" spot ----- */
           const t = move.t
           const h = lerp(a.height, b.height, t)
-          const w = h * (441 / 528)
+          const w = h * PHOTO_RATIO
           const cx = lerp(a.left + a.width / 2, b.left + b.width / 2, t) - s.left
           // a small hop on the way, and a gentle float once it has arrived
           const lift = Math.sin(Math.PI * t) * h * 0.12 + Math.sin(time * 1.6) * 4 * t
@@ -505,13 +529,13 @@ export default function Chapters() {
           if (Math.abs(baseH - b.height) > 0.5) {
             baseH = b.height
             travelGlass.style.height = `${baseH}px`
-            travelGlass.style.width = `${baseH * (441 / 528)}px`
+            travelGlass.style.width = `${baseH * PHOTO_RATIO}px`
             travelGlass.style.transformOrigin = `${GLASS_MID * 100}% 100%`
           }
           // 3D: the glass turns slightly towards the mouse and sways a little on its own
           tiltX += (mouse.y * -7 - tiltX) * 0.08
           tiltY += (mouse.x * 12 + Math.sin(time * 0.8) * 3 - tiltY) * 0.08
-          const ox = baseH * (441 / 528) * GLASS_MID
+          const ox = baseH * PHOTO_RATIO * GLASS_MID
           travelGlass.style.transform =
             `translate3d(${fmt(cx - ox)}px, ${fmt(bottom - baseH)}px, 0) scale(${(h / baseH).toFixed(4)}) ` +
             `perspective(${fmt(baseH * 3.4)}px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) rotate(${(Math.sin(Math.PI * t) * -4).toFixed(2)}deg)`
@@ -522,8 +546,8 @@ export default function Chapters() {
           if (streamOn) {
             const x0 = m.left - s.left
             const y0 = m.top - s.top
-            const x1 = gLeft + w * 0.62
-            const y1 = gTop + h * Math.max(pour.fill, 0.2)
+            const x1 = gLeft + w * GLASS_CENTER_X
+            const y1 = gTop + h * Math.max(pour.fill, 0.4)
             // leaves the can sideways, then falls (quadratic curve)
             const d = `M${fmt(x0)} ${fmt(y0)} Q${fmt(x0 + (x1 - x0) * 0.75)} ${fmt(y0 + (y1 - y0) * 0.08)} ${fmt(x1)} ${fmt(y1)}`
             pourStream.forEach((p) => {
@@ -585,20 +609,21 @@ export default function Chapters() {
             return
           }
           // cards are sized to the glass, like the reel (about a third of its width)
-          const cw = Math.round(gsap.utils.clamp(92, 210, b.width * 0.36))
+          const cw = Math.round(gsap.utils.clamp(92, 200, b.width * 0.32))
           if (cw !== cardW) {
             cardW = cw
             orbitCards.forEach((c) => (c.style.width = `${cw}px`))
           }
           const ccy = gTop + h * 0.45
           orbitCards.forEach((c, i) => {
-            const spot = SPOTS[i % SPOTS.length]
+            const spot = (W < 768 ? SPOTS_PHONE : SPOTS)[i % SPOTS.length]
             // each card starts a little after the one before
             const k = gsap.utils.clamp(0, 1, (r - i * 0.15) / 0.7)
             const e = backOut(k)
             const halfW = cw / 2
             const tx = gsap.utils.clamp(halfW + 8, W - halfW - 8, cx + spot.dx * w)
-            const ty = ccy + spot.dy * h
+            // on short phones the top cards come down a little to clear the button above
+            const ty = ccy + spot.dy * h * (W < 768 && H < 720 && spot.dy < 0 ? 0.78 : 1)
             // out of the glass in an arc, tumbling, then a gentle bob at rest
             const arc = Math.sin(Math.PI * k) * h * 0.25
             const bob = Math.sin(time * 1.4 + i * 1.7) * 6 * k
@@ -717,7 +742,7 @@ export default function Chapters() {
             {s.id === 'pour' && (
               <div
                 data-glass-slot="pour"
-                className="pointer-events-none absolute bottom-[4%] left-1/2 aspect-[441/528] h-[26svh] -translate-x-1/2 md:bottom-[5%] md:h-[min(44svh,32vw)]"
+                className="pointer-events-none absolute bottom-[4%] left-1/2 aspect-[742/772] h-[26svh] -translate-x-1/2 md:bottom-[5%] md:h-[min(44svh,32vw)]"
                 aria-hidden="true"
               >
                 <FloorShadow className="bottom-[-4%] w-[85%]" />
@@ -726,7 +751,7 @@ export default function Chapters() {
             {s.id === 'sip' && (
               <div
                 data-glass-slot="sip"
-                className="pointer-events-none absolute bottom-[12%] left-1/2 aspect-[441/528] h-[32svh] -translate-x-1/2 md:bottom-[10%] md:h-[min(56svh,40vw)]"
+                className="pointer-events-none absolute bottom-[12%] left-1/2 aspect-[742/772] h-[32svh] -translate-x-1/2 md:bottom-[10%] md:h-[min(56svh,40vw)]"
                 aria-hidden="true"
               >
                 <FloorShadow className="bottom-[-4%] w-[85%]" />
