@@ -1,0 +1,103 @@
+@import "tailwindcss";
+@import "lenis/dist/lenis.css";
+
+@font-face {
+  font-family: "Yusuke Din";
+  src: url("/fonts/YusukeDIN-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Yusuke Din";
+  src: url("/fonts/YusukeDIN-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* Brand colors (taken from the original site) */
+  --color-ink: #140d0b;
+  --color-espresso: #241612;
+  --color-brown: #422922;
+  --color-cream: #f4ece1;
+  --color-caramel: #a8633e;
+  --color-mocha: #7a4630;
+  --color-tan: #e0c699;
+  --color-light-tan: #fefee8;
+  --color-red: #e5332a;
+
+  /* Soft, rounded serif like the reference reel */
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+  --font-script: "Fraunces", Georgia, serif;
+  --font-din: "Yusuke Din", "Arial Narrow", Arial, sans-serif;
+
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-marquee: marquee var(--marquee-duration, 40s) linear infinite;
+  --animate-scroll-line: scroll-line 2s var(--ease-expo) infinite;
+  --animate-spin-slow: spin 24s linear infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes scroll-line {
+    0% { transform: scaleY(0); transform-origin: top; }
+    45% { transform: scaleY(1); transform-origin: top; }
+    55% { transform: scaleY(1); transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+  }
+}
+
+@layer base {
+  html {
+    background: var(--color-ink);
+  }
+  body {
+    @apply bg-ink font-body text-cream antialiased;
+    overflow-x: clip;
+  }
+  ::selection {
+    background: var(--color-tan);
+    color: var(--color-ink);
+  }
+  img {
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+}
+
+/* Fraunces at its softest, chunkiest setting (matches the reel's headings) */
+.font-display {
+  font-variation-settings: "SOFT" 100, "WONK" 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.font-script {
+  font-style: italic;
+  font-weight: 500;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+}
+
+/* Mask used for "slide up" text reveals */
+.line-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+
+.marquee-pause:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-scroll-line,
+  .animate-spin-slow {
+    animation: none;
+  }
+}
