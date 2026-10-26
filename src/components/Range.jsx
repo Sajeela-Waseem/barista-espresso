@@ -41,20 +41,19 @@ export default function Range() {
       <div data-fan className="relative mt-16 grid place-items-center py-10 md:mt-24">
         {/* coffee beans drifting around the photos */}
         {[
-          ['left-[6%] top-[8%] w-10 md:left-[14%] md:w-14', 30, 'images/bean-b6.webp'],
-          ['right-[8%] top-[2%] w-8 md:right-[16%] md:w-12', -25, 'images/bean-b7.webp'],
-          ['left-[10%] bottom-[4%] w-7 md:left-[22%] md:w-10', -40, 'images/bean-b8.webp'],
-          ['right-[5%] bottom-[12%] w-11 md:right-[12%] md:w-16', 45, 'images/bean-b9.webp'],
-        ].map(([cls, p, src]) => (
-          <div key={cls} data-parallax={p} className={`pointer-events-none absolute z-20 ${cls}`} aria-hidden="true">
-            <img data-bob src={src} alt="" className="w-full" />
+          ['left-[6%] top-[8%] w-10 md:left-[14%] md:w-14', 60, 'images/bean-b6.webp', 140],
+          ['right-[8%] top-[2%] w-8 md:right-[16%] md:w-12', 25, 'images/bean-b7.webp', -90],
+          ['left-[10%] bottom-[4%] w-7 md:left-[22%] md:w-10', 15, 'images/bean-b8.webp', 60],
+          ['right-[5%] bottom-[12%] w-11 md:right-[12%] md:w-16', 90, 'images/bean-b9.webp', -200],
+        ].map(([cls, p, src, spin]) => (
+          <div key={cls} data-parallax={p} data-spin={spin} className={`pointer-events-none absolute z-20 ${cls}`} aria-hidden="true">
+            <img src={src} alt="" className="w-full" />
           </div>
         ))}
         {cards.map((c, i) => (
           <div
             key={c.src}
             data-card={i}
-            data-tilt="12"
             className={`aspect-[3/4] w-[min(64vw,330px)] overflow-hidden rounded-[2rem] shadow-[0_30px_60px_-20px_rgba(20,13,11,.55)] [grid-area:1/1] ${
               i === 1 ? 'z-10' : ''
             }`}

@@ -429,7 +429,11 @@ export default function Chapters() {
         const glassFull = q('[data-travel-glass] [data-glass-full]')
         const slotPour = q('[data-glass-slot="pour"]')[0]
         const slotSip = q('[data-glass-slot="sip"]')[0]
-        const pourStream = q('[data-pour-stream] path')
+        const streamBody = q('[data-stream-body]')[0]
+        const streamShine = q('[data-stream-shine]')[0]
+        const drops = q('[data-drop-splash]').map((el) => ({ el, alive: false, x: 0, y: 0, vx: 0, vy: 0, r: 0 }))
+        const ripples = q('[data-ripple]')
+        let spawnBudget = 0
         const mouth = q('[data-can-mouth]')[0]
         const stageEl = q('[data-stage]')[0]
         gsap.set(q('[data-hero-layer]'), { display: 'block' })
@@ -479,7 +483,7 @@ export default function Chapters() {
         const orbitCards = q('[data-orbit-card]')
         const settle = { r: 0 }
         tl.to(settle, { r: 1, duration: 0.75, ease: 'none' }, 3.7)
-        const backOut = gsap.parseEase('back.out(1.3)')
+        const cardState = orbitCards.map(() => ({ x: 0, y: 0, vx: 0, vy: 0, s: 0, vs: 0, init: false }))
 
         /*
           One per-frame update for the glass, the stream, the wave and the cards.
@@ -503,9 +507,10 @@ export default function Chapters() {
         let clipState = ''
         const lerp = (a, b, t) => a + (b - a) * t
         const STEPS = 28
+        const STREAM_STEPS = 26
         const fmt = (v) => v.toFixed(1)
 
-        const frame = (time) => {
+        const frame = (time, dt) => {
           if (!onScreen) return
 
           /* ----- reads ----- */
@@ -548,14 +553,88 @@ export default function Chapters() {
             const y0 = m.top - s.top
             const x1 = gLeft + w * GLASS_CENTER_X
             const y1 = gTop + h * Math.max(pour.fill, 0.4)
-            // leaves the can sideways, then falls (quadratic curve)
-            const d = `M${fmt(x0)} ${fmt(y0)} Q${fmt(x0 + (x1 - x0) * 0.75)} ${fmt(y0 + (y1 - y0) * 0.08)} ${fmt(x1)} ${fmt(y1)}`
-            pourStream.forEach((p) => {
-              p.setAttribute('d', d)
-              p.setAttribute('stroke-dasharray', `${(pour.grow - pour.cut).toFixed(4)} 2`)
-              p.setAttribute('stroke-dashoffset', String(-pour.cut))
+            // control point: it leaves the can sideways, then gravity takes over
+            const cxq = x0 + (x1 - x0) * 0.78
+            const cyq = y0 + (y1 - y0) * 0.06
+            const thick = gsap.utils.clamp(5, 16, h * 0.034)
+            const from = pour.cut
+            const to = pour.grow
+            const left = []
+            const right = []
+            const shine = []
+            for (let k = 0; k <= STREAM_STEPS; k++) {
+              const u = from + ((to - from) * k) / STREAM_STEPS
+              const iu = 1 - u
+              const px = iu * iu * x0 + 2 * iu * u * cxq + u * u * x1
+              const py = iu * iu * y0 + 2 * iu * u * cyq + u * u * y1
+              // direction of travel, for the stream's sides
+              const tx = 2 * iu * (cxq - x0) + 2 * u * (x1 - cxq)
+              const ty = 2 * iu * (cyq - y0) + 2 * u * (y1 - cyq)
+              const len = Math.hypot(tx, ty) || 1
+              const nx = -ty / len
+              const ny = tx / len
+              // pours out thick and thins as it speeds up; the falling part wobbles a little
+              const width = thick * (1 - 0.55 * u) * (0.92 + 0.08 * Math.sin(time * 23 + u * 31))
+              const wob = Math.sin(time * 11 + u * 17) * thick * 0.18 * u + Math.sin(time * 29 + u * 43) * thick * 0.07 * u
+              const cx = px + nx * wob
+              const cy = py + ny * wob
+              left.push(`${fmt(cx + (nx * width) / 2)},${fmt(cy + (ny * width) / 2)}`)
+              right.push(`${fmt(cx - (nx * width) / 2)},${fmt(cy - (ny * width) / 2)}`)
+              shine.push(`${fmt(cx + nx * width * 0.18)},${fmt(cy + ny * width * 0.18)}`)
+            }
+            streamBody.setAttribute('d', `M${left.join(' L')} L${right.reverse().join(' L')} Z`)
+            streamShine.setAttribute('d', `M${shine.join(' L')}`)
+            streamShine.setAttribute('stroke-width', fmt(thick * 0.22))
+
+            // where it hits the coffee: droplets jump up and fall back, rings spread out
+            const landed = to > 0.97 && pour.fill < 0.88
+            const dts = Math.min(dt, 50) / 1000
+            if (landed) spawnBudget += dts * 34
+            drops.forEach((d) => {
+              if (!d.alive && spawnBudget >= 1) {
+                spawnBudget -= 1
+                d.alive = true
+                d.x = x1 + (Math.random() - 0.5) * thick
+                d.y = y1
+                d.vx = (Math.random() - 0.5) * thick * 9
+                d.vy = -(0.35 + Math.random() * 0.65) * thick * 14
+                d.r = thick * (0.12 + Math.random() * 0.16)
+              }
+              if (!d.alive) {
+                if (d.el.getAttribute('r') !== '0') d.el.setAttribute('r', '0')
+                return
+              }
+              d.vy += thick * 70 * dts
+              d.x += d.vx * dts
+              d.y += d.vy * dts
+              if (d.y > y1 + 1 && d.vy > 0) d.alive = false
+              d.el.setAttribute('cx', fmt(d.x))
+              d.el.setAttribute('cy', fmt(d.y))
+              d.el.setAttribute('r', d.alive ? fmt(d.r) : '0')
             })
-          } else if (pourStream[0].getAttribute('d')) pourStream.forEach((p) => p.setAttribute('d', ''))
+            spawnBudget = Math.min(spawnBudget, 2)
+            const surfaceW = w * 0.17
+            ripples.forEach((el, i) => {
+              if (!landed) {
+                el.setAttribute('rx', '0')
+                return
+              }
+              const ph = (time * 1.6 + i / ripples.length) % 1
+              el.setAttribute('cx', fmt(x1))
+              el.setAttribute('cy', fmt(y1))
+              el.setAttribute('rx', fmt(thick * 0.6 + surfaceW * ph))
+              el.setAttribute('ry', fmt((thick * 0.6 + surfaceW * ph) * 0.18))
+              el.setAttribute('stroke-opacity', (0.5 * (1 - ph)).toFixed(3))
+            })
+          } else if (streamBody.getAttribute('d')) {
+            streamBody.setAttribute('d', '')
+            streamShine.setAttribute('d', '')
+            drops.forEach((d) => {
+              d.alive = false
+              d.el.setAttribute('r', '0')
+            })
+            ripples.forEach((el) => el.setAttribute('rx', '0'))
+          }
 
           /* ----- liquid wave ----- */
           const p = wave.p
@@ -602,12 +681,8 @@ export default function Chapters() {
             shineBottom.setAttribute('d', `M${pts(bot, -th * 0.3)}`)
           }
 
-          /* ----- cards ----- */
+          /* ----- cards: thrown out of the glass on springs, so they overshoot and settle like real objects ----- */
           const r = settle.r
-          if (r <= 0.001) {
-            if (orbitCards[0].style.visibility !== 'hidden') orbitCards.forEach((c) => (c.style.visibility = 'hidden'))
-            return
-          }
           // cards are sized to the glass, like the reel (about a third of its width)
           const cw = Math.round(gsap.utils.clamp(92, 200, b.width * 0.32))
           if (cw !== cardW) {
@@ -615,28 +690,44 @@ export default function Chapters() {
             orbitCards.forEach((c) => (c.style.width = `${cw}px`))
           }
           const ccy = gTop + h * 0.45
+          const step = Math.min(dt, 40) / 1000
           orbitCards.forEach((c, i) => {
+            const st = cardState[i]
             const spot = (W < 768 ? SPOTS_PHONE : SPOTS)[i % SPOTS.length]
-            // each card starts a little after the one before
-            const k = gsap.utils.clamp(0, 1, (r - i * 0.15) / 0.7)
-            const e = backOut(k)
             const halfW = cw / 2
-            const tx = gsap.utils.clamp(halfW + 8, W - halfW - 8, cx + spot.dx * w)
+            // each card is let go a beat after the one before
+            const out = r > 0.08 + i * 0.16
+            const tx = out ? gsap.utils.clamp(halfW + 8, W - halfW - 8, cx + spot.dx * w) : cx
             // on short phones the top cards come down a little to clear the button above
-            const ty = ccy + spot.dy * h * (W < 768 && H < 720 && spot.dy < 0 ? 0.78 : 1)
-            // out of the glass in an arc, tumbling, then a gentle bob at rest
-            const arc = Math.sin(Math.PI * k) * h * 0.25
-            const bob = Math.sin(time * 1.4 + i * 1.7) * 6 * k
-            const rx = (1 - k) * [60, -50, 70][i % 3]
-            const ry = (1 - k) * [-90, 80, 60][i % 3] + Math.sin(time * 0.9 + i) * 4 * k
-            const rz = spot.rot * e + (1 - k) * [-40, 30, -25][i % 3]
-            c.style.visibility = k > 0 ? 'visible' : 'hidden'
-            c.style.opacity = Math.min(1, k * 2.5).toFixed(3)
+            const ty = out ? ccy + spot.dy * h * (W < 768 && H < 720 && spot.dy < 0 ? 0.78 : 1) : ccy
+            const ts = out ? 1 : 0.18
+            if (!st.init) Object.assign(st, { x: cx, y: ccy, s: 0.18, init: true })
+            // damped springs: a bit loose for position, firmer for size
+            const ax = (tx - st.x) * 120 - st.vx * 11
+            const ay = (ty - st.y) * 120 - st.vy * 11
+            st.vx += ax * step
+            st.vy += ay * step
+            st.x += st.vx * step
+            st.y += st.vy * step
+            st.vs += ((ts - st.s) * 160 - st.vs * 16) * step
+            st.s += st.vs * step
+            const settleAmt = gsap.utils.clamp(0, 1, (st.s - 0.18) / 0.82)
+            if (settleAmt < 0.01 && !out) {
+              if (c.style.visibility !== 'hidden') c.style.visibility = 'hidden'
+              return
+            }
+            // the card leans into its motion like paper in the air, then rests at its tilt
+            const lean = gsap.utils.clamp(-35, 35, st.vx * 0.035)
+            const pitch = gsap.utils.clamp(-40, 40, -st.vy * 0.03)
+            // once settled it breathes very slightly, each card at its own pace
+            const idle = Math.sin(time * (0.9 + i * 0.23) + i * 2.1) * 3 * settleAmt
+            c.style.visibility = 'visible'
+            c.style.opacity = Math.min(1, settleAmt * 2.2).toFixed(3)
             // cards come out from behind the glass; the front ones move in front once they are clear
-            c.style.zIndex = spot.front && k > 0.45 ? '3' : '1'
+            c.style.zIndex = spot.front && settleAmt > 0.5 ? '3' : '1'
             c.style.transform =
-              `translate3d(${fmt(cx + (tx - cx) * e - halfW)}px, ${fmt(ccy + (ty - ccy) * e - arc + bob)}px, 0) translateY(-50%) ` +
-              `perspective(900px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) rotate(${rz.toFixed(2)}deg) scale(${(0.2 + 0.8 * e).toFixed(3)})`
+              `translate3d(${fmt(st.x - halfW)}px, ${fmt(st.y + idle)}px, 0) translateY(-50%) ` +
+              `perspective(900px) rotateX(${pitch.toFixed(2)}deg) rotateY(${lean.toFixed(2)}deg) rotate(${(spot.rot * settleAmt + lean * 0.4).toFixed(2)}deg) scale(${Math.max(0, st.s).toFixed(3)})`
           })
         }
         gsap.ticker.add(frame)
@@ -833,8 +924,21 @@ export default function Chapters() {
 
         {/* the coffee stream from the can in scene 2 to the glass in scene 3, drawn above both scenes */}
         <svg data-pour-stream className="pointer-events-none absolute inset-0 z-[6] size-full overflow-visible" aria-hidden="true">
-          <path pathLength="1" fill="none" stroke="#7a4524" strokeWidth="9" strokeLinecap="round" strokeDasharray="0 2" />
-          <path pathLength="1" fill="none" stroke="#c28d5e" strokeOpacity=".55" strokeWidth="3" strokeLinecap="round" strokeDasharray="0 2" />
+          <defs>
+            <linearGradient id="stream-fill" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#3b1a09" />
+              <stop offset=".45" stopColor="#8a4d24" />
+              <stop offset="1" stopColor="#4a210c" />
+            </linearGradient>
+          </defs>
+          {[0, 1, 2].map((i) => (
+            <ellipse key={i} data-ripple rx="0" ry="0" fill="none" stroke="#f3d3a8" strokeWidth="1.4" />
+          ))}
+          <path data-stream-body fill="url(#stream-fill)" />
+          <path data-stream-shine fill="none" stroke="#f6d6ae" strokeOpacity=".45" strokeLinecap="round" />
+          {Array.from({ length: 18 }).map((_, i) => (
+            <circle key={i} data-drop-splash r="0" fill="#6b3818" />
+          ))}
         </svg>
 
         {/* slider controls like the reel: white round arrows + dots */}

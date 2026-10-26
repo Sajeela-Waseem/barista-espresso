@@ -5,7 +5,6 @@ export default function Stores() {
   const items = [...stores, ...stores]
   return (
     <section aria-label="Available in" data-header="cream" className="border-y border-cream/10 bg-ink py-8 md:py-10">
-      <div data-skew>
       <Marquee duration={35} gap="gap-14 pr-14 md:gap-20 md:pr-20">
         {items.map((s, i) => (
           <div key={i} className="flex items-center gap-14 md:gap-20">
@@ -21,7 +20,6 @@ export default function Stores() {
           </div>
         ))}
       </Marquee>
-      </div>
     </section>
   )
 }

@@ -69,7 +69,7 @@ export default function Why() {
       </div>
 
       <div className="mx-auto mt-16 grid max-w-7xl items-center gap-12 px-5 md:mt-24 md:px-8 lg:grid-cols-2">
-        <div data-can-wrap data-tilt="10" className="relative">
+        <div data-can-wrap className="relative">
           <div className="absolute inset-0 -z-0 bg-[radial-gradient(closest-side,rgba(224,198,153,.55),transparent)]" />
           <img
             data-can

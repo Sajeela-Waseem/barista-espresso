@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { gsap, SplitText, useGSAP, MOTION_OK } from '../lib/gsap'
+import { gsap, ScrollTrigger, SplitText, useGSAP, MOTION_OK } from '../lib/gsap'
 import { scrollToHash } from '../lib/scroll'
 
 export function ArrowIcon({ className = '' }) {
@@ -63,7 +63,6 @@ export function AnimatedButton({ href, children, theme = 'cream', external = fal
       onMouseLeave={() => tl.current?.reverse()}
       onFocus={() => tl.current?.play()}
       onBlur={() => tl.current?.reverse()}
-      data-magnetic="0.25"
       className={`relative inline-flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.14em] ${className}`}
     >
       <span data-c1 className={`grid size-12 place-items-center rounded-full ${color}`}>
@@ -87,15 +86,19 @@ export function RevealText({ as: Tag = 'h2', children, className = '', delay = 0
       const mm = gsap.matchMedia()
       mm.add(MOTION_OK, () => {
         const split = SplitText.create(ref.current, {
-          type: 'lines',
+          type: 'lines,chars',
           mask: 'lines',
           autoSplit: true,
+          // letters come up out of each line one after another, each with its own small
+          // tilt and pace, so the word sets like type rather than sliding up as one block
           onSplit: (self) =>
-            gsap.from(self.lines, {
-              yPercent: 110,
-              duration: 1.2,
-              ease: 'expo.out',
-              stagger: 0.1,
+            gsap.from(self.chars, {
+              yPercent: 120,
+              rotation: () => gsap.utils.random(4, 16),
+              transformOrigin: '0% 100%',
+              duration: () => gsap.utils.random(0.85, 1.25),
+              ease: 'power4.out',
+              stagger: { each: 0.024, ease: 'power1.in' },
               delay,
               scrollTrigger: { trigger: ref.current, start, once: true },
             }),
@@ -168,14 +171,72 @@ export function useRevealChildren(scope, selector = '[data-reveal]', start = 'to
   )
 }
 
-/* Infinite horizontal loop. Content is rendered twice so it wraps seamlessly. */
+/*
+  Endless strip. Content is rendered twice so it wraps seamlessly.
+  It drifts on its own, picks up speed when you scroll (and runs the other way when you
+  scroll up), then coasts back down to its resting pace. Hovering slows it to a crawl.
+*/
 export function Marquee({ children, duration = 40, reverse = false, gap = 'gap-12 pr-12', className = '' }) {
+  const root = useRef(null)
+  const track = useRef(null)
+
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia()
+      mm.add(MOTION_OK, () => {
+        const dir0 = reverse ? -1 : 1
+        let dir = dir0
+        let x = 0 // percent of the track, 0 → -50 is one full loop
+        let boost = 0 // extra speed from scrolling, decays every frame
+        let hover = 1
+        let hoverTarget = 1
+        let visible = false
+        const base = 50 / duration // percent per second
+
+        const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting))
+        io.observe(root.current)
+
+        const st = ScrollTrigger.create({
+          onUpdate: (self) => {
+            const v = self.getVelocity()
+            // scrolling up turns the strip around; it stays that way until you scroll down again
+            if (Math.abs(v) > 30) dir = dir0 * Math.sign(v)
+            boost = Math.max(boost, Math.min(Math.abs(v) / 180, 9))
+          },
+        })
+
+        const tick = (time, dt) => {
+          if (!visible) return
+          const s = Math.min(dt, 64) / 1000
+          // friction: the boost bleeds off over roughly a second
+          boost *= Math.pow(0.12, s)
+          hover += (hoverTarget - hover) * Math.min(1, s * 6)
+          x -= dir * base * (1 + boost) * hover * s
+          x = gsap.utils.wrap(-50, 0, x)
+          track.current.style.transform = `translate3d(${x.toFixed(3)}%,0,0)`
+        }
+        gsap.ticker.add(tick)
+
+        const el = root.current
+        const slow = () => (hoverTarget = 0.15)
+        const resume = () => (hoverTarget = 1)
+        el.addEventListener('pointerenter', slow)
+        el.addEventListener('pointerleave', resume)
+        return () => {
+          gsap.ticker.remove(tick)
+          st.kill()
+          io.disconnect()
+          el.removeEventListener('pointerenter', slow)
+          el.removeEventListener('pointerleave', resume)
+        }
+      })
+    },
+    { scope: root },
+  )
+
   return (
-    <div className={`marquee-pause flex overflow-hidden ${className}`}>
-      <div
-        className="flex min-w-max shrink-0 animate-marquee"
-        style={{ '--marquee-duration': `${duration}s`, animationDirection: reverse ? 'reverse' : 'normal' }}
-      >
+    <div ref={root} className={`flex overflow-hidden ${className}`}>
+      <div ref={track} className="flex min-w-max shrink-0 will-change-transform">
         <div className={`flex shrink-0 items-center ${gap}`}>{children}</div>
         <div className={`flex shrink-0 items-center ${gap}`} aria-hidden="true">
           {children}

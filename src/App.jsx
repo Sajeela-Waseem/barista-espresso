@@ -44,10 +44,10 @@ export default function App() {
     }
   }, [])
 
-  // Thin progress bar at the top of the page
-  // Shared hover/scroll effects (data-tilt, data-skew, data-pop, ...) for the sections below the chapters
+  // Scroll-linked depth effects (data-parallax, data-grow) for the sections below the chapters
   useEffect(() => initEffects(document.querySelector('main')), [])
 
+  // Thin progress bar at the top of the page
   useGSAP(() => {
     gsap.to(progress.current, {
       scaleX: 1,
@@ -59,6 +59,7 @@ export default function App() {
   return (
     <>
       <div ref={progress} className="fixed inset-x-0 top-0 z-[60] h-[3px] origin-left scale-x-0 bg-caramel" />
+      <div className="grain" aria-hidden="true" />
       <Navbar />
       <main>
         <Chapters />

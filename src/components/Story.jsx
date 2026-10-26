@@ -63,7 +63,7 @@ export default function Story() {
 
       <div className="mx-auto grid max-w-7xl items-center gap-16 px-5 md:px-8 lg:grid-cols-12">
         <div className="relative pb-24 lg:col-span-6 lg:pb-0">
-          <div data-photo data-tilt="8" className="aspect-[4/5] w-[80%] overflow-hidden rounded-[2rem]">
+          <div data-photo className="aspect-[4/5] w-[80%] overflow-hidden rounded-[2rem]">
             <img src="images/story-1.webp" alt="Barista Bar iced drinks held up by the sea" className="size-full object-cover" loading="lazy" />
           </div>
           <div data-photo-small className="absolute right-0 bottom-0 w-[48%] lg:-bottom-10">

@@ -35,7 +35,7 @@ export default function Reviews() {
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,transparent_30%,#140d0b_85%)]" />
 
       <div className="mx-auto max-w-4xl px-5 text-center">
-        <img data-bob src="images/five-stars.avif" alt="Five stars" className="mx-auto h-5" loading="lazy" />
+        <img src="images/five-stars.avif" alt="Five stars" className="mx-auto h-5" loading="lazy" />
         <RevealText
           as="h2"
           className="mt-6 font-display text-[clamp(3rem,8vw,7rem)] uppercase leading-[0.9] tracking-tight"
@@ -47,20 +47,16 @@ export default function Reviews() {
       </div>
 
       <div className="mt-16 space-y-5">
-        <div data-skew>
         <Marquee duration={55} gap="gap-5 pr-5">
           {reviews.map((r) => (
             <ReviewCard key={r.name} r={r} />
           ))}
         </Marquee>
-        </div>
-        <div data-skew>
         <Marquee duration={55} reverse gap="gap-5 pr-5">
           {[...reviews].reverse().map((r) => (
             <ReviewCard key={r.name} r={r} />
           ))}
         </Marquee>
-        </div>
       </div>
     </section>
   )
