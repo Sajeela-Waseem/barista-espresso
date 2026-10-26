@@ -420,6 +420,9 @@ export default function Chapters() {
         const slotSip = q('[data-glass-slot="sip"]')[0]
         const streamBody = q('[data-stream-body]')[0]
         const streamShine = q('[data-stream-shine]')[0]
+        const streamFlow = q('[data-stream-flow]')
+        const maskTop = q('[data-mask-top]')[0]
+        const maskBottom = q('[data-mask-bottom]')[0]
         const drops = q('[data-drop-splash]').map((el) => ({ el, alive: false, x: 0, y: 0, vx: 0, vy: 0, r: 0 }))
         const ripples = q('[data-ripple]')
         let spawnBudget = 0
@@ -544,7 +547,7 @@ export default function Chapters() {
             // control point: it leaves the can sideways, then gravity takes over
             const cxq = x0 + (x1 - x0) * 0.78
             const cyq = y0 + (y1 - y0) * 0.06
-            const thick = gsap.utils.clamp(5, 16, h * 0.034)
+            const thick = gsap.utils.clamp(4, 12, h * 0.026)
             const from = pour.cut
             const to = pour.grow
             const left = []
@@ -568,11 +571,22 @@ export default function Chapters() {
               const cy = py + ny * wob
               left.push(`${fmt(cx + (nx * width) / 2)},${fmt(cy + (ny * width) / 2)}`)
               right.push(`${fmt(cx - (nx * width) / 2)},${fmt(cy - (ny * width) / 2)}`)
-              shine.push(`${fmt(cx + nx * width * 0.18)},${fmt(cy + ny * width * 0.18)}`)
+              shine.push(`${fmt(cx + nx * width * 0.12)},${fmt(cy + ny * width * 0.12)}`)
             }
             streamBody.setAttribute('d', `M${left.join(' L')} L${right.reverse().join(' L')} Z`)
             streamShine.setAttribute('d', `M${shine.join(' L')}`)
-            streamShine.setAttribute('stroke-width', fmt(thick * 0.22))
+            streamShine.setAttribute('stroke-width', fmt(thick * 0.3))
+            // streaks travel down the stream; the two run at slightly different speeds
+            const shineD = streamShine.getAttribute('d')
+            streamFlow.forEach((p, i) => {
+              p.setAttribute('d', shineD)
+              p.setAttribute('stroke-width', fmt(thick * (i ? 0.2 : 0.14)))
+              p.setAttribute('stroke-dashoffset', (-(time * (i ? 1.9 : 2.6)) % 1).toFixed(4))
+            })
+            // the glass rim: everything below it is dimmed by the mask
+            const rimY = gTop + h * 0.3
+            maskTop.setAttribute('y', fmt(rimY - 10000))
+            maskBottom.setAttribute('y', fmt(rimY))
 
             // where it hits the coffee: droplets jump up and fall back, rings spread out
             const landed = to > 0.97
@@ -617,6 +631,7 @@ export default function Chapters() {
           } else if (streamBody.getAttribute('d')) {
             streamBody.setAttribute('d', '')
             streamShine.setAttribute('d', '')
+            streamFlow.forEach((p) => p.setAttribute('d', ''))
             drops.forEach((d) => {
               d.alive = false
               d.el.setAttribute('r', '0')
@@ -916,17 +931,29 @@ export default function Chapters() {
         {/* the coffee stream from the can in scene 2 to the glass in scene 3, drawn above both scenes */}
         <svg data-pour-stream className="pointer-events-none absolute inset-0 z-[6] size-full overflow-visible" aria-hidden="true">
           <defs>
+            {/* backlit coffee: dark at the edges, glowing amber through the middle */}
             <linearGradient id="stream-fill" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stopColor="#3b1a09" />
-              <stop offset=".45" stopColor="#8a4d24" />
-              <stop offset="1" stopColor="#4a210c" />
+              <stop offset="0" stopColor="#2e1407" stopOpacity=".95" />
+              <stop offset=".3" stopColor="#7a3f17" stopOpacity=".8" />
+              <stop offset=".55" stopColor="#c9813f" stopOpacity=".62" />
+              <stop offset="1" stopColor="#3a1909" stopOpacity=".92" />
             </linearGradient>
+            {/* below the rim the stream is seen through the glass, so it dims */}
+            <mask id="stream-mask" maskUnits="userSpaceOnUse" x="-10000" y="-10000" width="20000" height="20000">
+              <rect data-mask-top x="-10000" y="-10000" width="20000" height="10000" fill="#fff" />
+              <rect data-mask-bottom x="-10000" y="0" width="20000" height="10000" fill="#5a5a5a" />
+            </mask>
           </defs>
           {[0, 1, 2].map((i) => (
             <ellipse key={i} data-ripple rx="0" ry="0" fill="none" stroke="#f3d3a8" strokeWidth="1.4" />
           ))}
-          <path data-stream-body fill="url(#stream-fill)" />
-          <path data-stream-shine fill="none" stroke="#f6d6ae" strokeOpacity=".45" strokeLinecap="round" />
+          <g mask="url(#stream-mask)">
+            <path data-stream-body fill="url(#stream-fill)" />
+            <path data-stream-shine fill="none" stroke="#ffe6c4" strokeOpacity=".35" strokeLinecap="round" />
+            {/* streaks of light that run down the stream, so it reads as moving liquid */}
+            <path data-stream-flow pathLength="1" fill="none" stroke="#fff1dc" strokeOpacity=".7" strokeLinecap="round" strokeDasharray="0.035 0.09 0.012 0.06" />
+            <path data-stream-flow pathLength="1" fill="none" stroke="#ffe0b5" strokeOpacity=".45" strokeLinecap="round" strokeDasharray="0.02 0.13 0.05 0.07" />
+          </g>
           {Array.from({ length: 18 }).map((_, i) => (
             <circle key={i} data-drop-splash r="0" fill="#6b3818" />
           ))}
