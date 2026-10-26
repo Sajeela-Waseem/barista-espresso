@@ -48,7 +48,7 @@ const scenes = [
       'linear-gradient(to bottom, #a35f3b 0%, rgba(163,95,59,0) 22%)',
       // a light counter for the glass to stand on, like the reel's pour shot
       'linear-gradient(to bottom, transparent 0 82%, rgba(0,0,0,.12) 82%, transparent 85%)',
-      'linear-gradient(to bottom, transparent 0 82%, #efe4d6 82%, #faf5ee 100%)',
+      'linear-gradient(to bottom, transparent 0 82%, #b98157 82%, #c99670 100%)',
       'radial-gradient(65% 70% at 60% 45%, #bd7a51 0%, #a35f3b 50%, #7f4227 100%)',
     ].join(','),
   },
@@ -194,8 +194,6 @@ const GLASS_CROP = { l: 0.2, t: 0, w: 0.53, h: 0.98 }
 const PHOTO_RATIO = (GLASS_CROP.w * 1400) / (GLASS_CROP.h * 788)
 // the photo is centred on its spot
 const GLASS_MID = 0.5
-// where the middle of the glass is inside the trimmed photo (the stream lands there)
-const GLASS_CENTER_X = (0.405 - GLASS_CROP.l) / GLASS_CROP.w
 const glassImgStyle = {
   position: 'absolute',
   maxWidth: 'none',
@@ -230,6 +228,86 @@ function GlassImage({ className = '' }) {
         />
       </div>
     </div>
+  )
+}
+
+/*
+  "Pour": a real photo of an empty glass of ice (images/glass-ice.webp, Pexels, Ron Lach) that
+  fills with coffee. The photo was shot on black, so it is screen-blended: the black drops out
+  and only the glass and ice remain over the brown wall. The coffee is a dark layer that rises
+  behind the photo; the ice under the coffee line is shown dimmed and amber, like ice in coffee.
+  All numbers below are positions in the cropped photo, in percent.
+*/
+const PG = {
+  rimY: 24.64, // top of the liquid space (rim)
+  floorY: 86.96, // inside bottom of the glass
+  cutY: 77.54, // below this only the glass itself is kept (the photo's counter is cut away)
+  baseY: 97.1, // underside of the glass
+  rim: [7.9, 93.7], // inner walls at the rim
+  floor: [16.34, 85.26], // inner walls at the bottom
+  wallCut: [12.35, 87.37], // outer walls at cutY
+  wallBase: [15.05, 85.97], // outer walls at the base
+}
+PG.centerX = (PG.rim[0] + PG.rim[1]) / 200
+const pct = (x, y) => `${x.toFixed(2)}% ${y.toFixed(2)}%`
+const lerpN = (a, b, t) => a + (b - a) * t
+const outerAt = (y) => {
+  const t = (y - PG.cutY) / (PG.baseY - PG.cutY)
+  return [lerpN(PG.wallCut[0], PG.wallBase[0], t), lerpN(PG.wallCut[1], PG.wallBase[1], t)]
+}
+const PG_INSIDE = `polygon(${pct(PG.rim[0], PG.rimY)},${pct(PG.rim[1], PG.rimY)},${pct(PG.floor[1], PG.floorY)},${pct(PG.floor[0], PG.floorY)})`
+// the photo above the coffee line (and never the counter below the glass)
+const pgUpper = (y) => {
+  if (y <= PG.cutY) return `polygon(${pct(0, 0)},${pct(100, 0)},${pct(100, y)},${pct(0, y)})`
+  const [l0, r0] = outerAt(PG.cutY)
+  const [l, r] = outerAt(y)
+  return `polygon(${pct(0, 0)},${pct(100, 0)},${pct(100, PG.cutY)},${pct(r0, PG.cutY)},${pct(r, y)},${pct(l, y)},${pct(l0, PG.cutY)},${pct(0, PG.cutY)})`
+}
+// the photo below the coffee line, cut to the glass at the bottom
+const pgLower = (y) => {
+  const [l0, r0] = outerAt(PG.cutY)
+  const [lb, rb] = outerAt(PG.baseY)
+  if (y <= PG.cutY)
+    return `polygon(${pct(0, y)},${pct(100, y)},${pct(100, PG.cutY)},${pct(r0, PG.cutY)},${pct(rb, PG.baseY)},${pct(lb, PG.baseY)},${pct(l0, PG.cutY)},${pct(0, PG.cutY)})`
+  const [l, r] = outerAt(y)
+  return `polygon(${pct(r, y)},${pct(rb, PG.baseY)},${pct(lb, PG.baseY)},${pct(l, y)})`
+}
+
+function PourGlass() {
+  const img = 'images/glass-ice.webp'
+  return (
+    <>
+      <div
+        className="absolute h-[4%] rounded-[50%] bg-[radial-gradient(closest-side,rgba(40,16,4,.55),rgba(40,16,4,.18)_60%,transparent)]"
+        style={{ left: `${PG.wallBase[0] - 3}%`, width: `${PG.wallBase[1] - PG.wallBase[0] + 6}%`, top: `${PG.baseY - 2}%` }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0" style={{ clipPath: PG_INSIDE }}>
+        <div
+          data-coffee
+          className="absolute inset-x-0 bottom-0 bg-[linear-gradient(to_bottom,#4a210b_0%,#2a1005_35%,#150702_100%)]"
+          style={{ top: `${PG.floorY}%` }}
+        >
+          {/* the light catching the surface */}
+          <div className="absolute inset-x-0 -top-px h-[3px] bg-[rgba(255,214,170,.45)]" />
+        </div>
+      </div>
+      <img
+        data-ice-up
+        src={img}
+        alt="A glass of ice"
+        className="absolute inset-0 size-full mix-blend-screen [filter:contrast(1.2)_brightness(.95)]"
+        style={{ clipPath: pgUpper(PG.floorY) }}
+      />
+      <img
+        data-ice-down
+        src={img}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 size-full mix-blend-screen [filter:sepia(.9)_saturate(1.3)_brightness(.38)_contrast(1.6)]"
+        style={{ clipPath: pgLower(PG.floorY) }}
+      />
+    </>
   )
 }
 
@@ -434,17 +512,24 @@ export default function Chapters() {
         // cut: how far its tail has left the can (stream ends when cut reaches grow)
         // fill: top of the coffee in the glass, as a share of the glass height
         // the glass is already full; fill is where its coffee surface sits (share of the photo height)
-        const pour = { grow: 0, cut: 0, fill: 0.36 }
-        const move = { t: 0 }
+        // level: how full the glass in Pour is (0 empty, 1 full)
+        const pour = { grow: 0, cut: 0, level: 0 }
+        // the Sip product waits in Sip; the wave reveals it (as the reel does with its mug)
+        const move = { t: 1 }
+        const coffee = q('[data-coffee]')[0]
+        const iceUp = q('[data-ice-up]')[0]
+        const iceDown = q('[data-ice-down]')[0]
+        const heroLayer = q('[data-hero-layer]')[0]
+        let lastLevel = -1
         tl.to(q('[data-pour-full]'), { opacity: 0, duration: 0.12 }, 2.05)
           .to(q('[data-pour-drops]'), { opacity: 0, duration: 0.12 }, 2.05)
           .to(q('[data-pour-tilt]'), { opacity: 1, duration: 0.1 }, 2.05)
           .to(q('[data-pour-tilt]'), { rotation: -38, transformOrigin: '72% 70%', duration: 0.35, ease: 'power2.inOut' }, 2.05)
           .to(pour, { grow: 1, duration: 0.3, ease: 'power1.in' }, 2.35)
+          // the coffee rises once the stream reaches the glass, slowing as it nears the top
+          .to(pour, { level: 0.93, duration: 0.62, ease: 'power1.out' }, 2.55)
           .to(pour, { cut: 1, duration: 0.12, ease: 'power1.in' }, 3.15)
           .to(q('[data-pour-tilt]'), { rotation: 0, duration: 0.3, ease: 'power2.inOut' }, 3.25)
-          // the full glass travels with the wave into "Sip"
-          .to(move, { t: 1, duration: 0.9, ease: 'power2.inOut' }, 3.1)
 
         /* ---------- unit 3→4: a glossy wave of coffee rises and reveals "Sip" inside it (as in the reel) ---------- */
         const sipScene = sceneEls[n - 1]
@@ -536,14 +621,22 @@ export default function Chapters() {
             `translate3d(${fmt(cx - ox)}px, ${fmt(bottom - baseH)}px, 0) scale(${(h / baseH).toFixed(4)}) ` +
             `perspective(${fmt(baseH * 3.4)}px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) rotate(${(Math.sin(Math.PI * t) * -4).toFixed(2)}deg)`
           const gTop = bottom - h
-          const gLeft = cx - w * GLASS_MID
+
+          /* ----- the glass in Pour: coffee level ----- */
+          const surf = PG.floorY - (PG.floorY - PG.rimY) * pour.level
+          if (Math.abs(pour.level - lastLevel) > 0.0005) {
+            lastLevel = pour.level
+            coffee.style.top = `${surf.toFixed(2)}%`
+            iceUp.style.clipPath = pgUpper(surf)
+            iceDown.style.clipPath = pgLower(surf)
+          }
 
           /* ----- stream: from the can's opening to the coffee surface ----- */
           if (streamOn) {
             const x0 = m.left - s.left
             const y0 = m.top - s.top
-            const x1 = gLeft + w * GLASS_CENTER_X
-            const y1 = gTop + h * pour.fill
+            const x1 = a.left - s.left + a.width * PG.centerX
+            const y1 = a.top - s.top + (a.height * surf) / 100
             // control point: it leaves the can sideways, then gravity takes over
             const cxq = x0 + (x1 - x0) * 0.78
             const cyq = y0 + (y1 - y0) * 0.06
@@ -584,7 +677,7 @@ export default function Chapters() {
               p.setAttribute('stroke-dashoffset', (-(time * (i ? 1.9 : 2.6)) % 1).toFixed(4))
             })
             // the glass rim: everything below it is dimmed by the mask
-            const rimY = gTop + h * 0.3
+            const rimY = a.top - s.top + (a.height * PG.rimY) / 100
             maskTop.setAttribute('y', fmt(rimY - 10000))
             maskBottom.setAttribute('y', fmt(rimY))
 
@@ -646,6 +739,7 @@ export default function Chapters() {
             if (clipState !== want) {
               clipState = want
               sipScene.style.clipPath = p <= 0 ? 'polygon(0 0, 0 0, 0 0)' : 'none'
+              heroLayer.style.clipPath = sipScene.style.clipPath
               liquidSvg.style.opacity = '0'
             }
           } else {
@@ -669,6 +763,7 @@ export default function Chapters() {
               .concat(botRev)
               .map(([x, y]) => `${fmt(x)}px ${fmt(y)}px`)
               .join(',')})`
+            heroLayer.style.clipPath = sipScene.style.clipPath
             // glossy amber surfaces along both edges of the wave
             const th = Math.min(0.07 * H, half * H * 0.6)
             const pts = (edge, off = 0) => edge.map(([x, y]) => `${fmt(x)},${fmt(y + off)}`).join(' L')
@@ -839,11 +934,11 @@ export default function Chapters() {
 
             {/* where the travelling glass stands in this scene (it is drawn in the stage, above the scenes) */}
             {s.id === 'pour' && (
-              <div
-                data-glass-slot="pour"
-                className="pointer-events-none absolute bottom-[4%] left-1/2 aspect-[742/772] h-[26svh] -translate-x-1/2 md:bottom-[5%] md:h-[min(44svh,32vw)]"
-                aria-hidden="true"
-              >
+              // centred with flex, not a transform: a transform would cut the photo off from the wall behind it
+              <div className="pointer-events-none absolute inset-x-0 bottom-[6%] flex justify-center md:bottom-[7%]">
+                <div data-glass-slot="pour" className="relative aspect-[760/1229] h-[34svh] md:h-[min(58svh,42vw)]">
+                  <PourGlass />
+                </div>
               </div>
             )}
             {s.id === 'sip' && (
