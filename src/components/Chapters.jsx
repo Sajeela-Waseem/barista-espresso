@@ -177,7 +177,7 @@ function Product({ id }) {
     <div data-static-sip>
       <div data-product className="absolute bottom-[14%] left-1/2 h-[30svh] -translate-x-1/2 md:bottom-[10%] md:left-[55%] md:h-[min(50svh,38vw)]">
         <FloorShadow className="bottom-[-3%] w-[80%]" />
-        <GlassImage full className="relative h-full" />
+        <GlassImage className="relative h-full" />
       </div>
       <div className="absolute inset-x-4 bottom-[3%] z-20 flex justify-center gap-2">
         {rangeCards.map((c) => (
@@ -194,11 +194,8 @@ const GLASS_CROP = { l: 0.2, t: 0, w: 0.53, h: 0.98 }
 const PHOTO_RATIO = (GLASS_CROP.w * 1400) / (GLASS_CROP.h * 788)
 // the photo is centred on its spot
 const GLASS_MID = 0.5
-// where the glass is inside the trimmed photo: its centre, and where the can starts
+// where the middle of the glass is inside the trimmed photo (the stream lands there)
 const GLASS_CENTER_X = (0.405 - GLASS_CROP.l) / GLASS_CROP.w
-const CAN_LEFT = (0.505 - GLASS_CROP.l) / GLASS_CROP.w
-// share of the photo on the right that is the can (used to clip the glass layers)
-const CAN_CLIP = `${((1 - CAN_LEFT) * 100).toFixed(2)}%`
 const glassImgStyle = {
   position: 'absolute',
   maxWidth: 'none',
@@ -209,36 +206,29 @@ const glassImgStyle = {
 }
 
 /*
-  Layers: the can (always as photographed), the glass empty (washed out), and the glass
-  full, which is revealed from the bottom up as it is poured. `full` = static, already full.
+  The glass and the can exactly as photographed, standing on the surface: a tight dark
+  contact shadow where they touch, and a long soft shadow thrown away from the window light.
 */
-function GlassImage({ full = false, className = '' }) {
+function GlassImage({ className = '' }) {
   return (
-    <div className={`relative aspect-[742/772] overflow-hidden ${className}`}>
-      {full ? (
-        <img src="images/hero.webp" alt="Barista iced coffee can and a glass of iced coffee" style={glassImgStyle} />
-      ) : (
-        <>
-          <img
-            src="images/hero.webp"
-            alt="Barista iced coffee can"
-            style={{ ...glassImgStyle, clipPath: `inset(0 0 0 ${((GLASS_CROP.l + CAN_LEFT * GLASS_CROP.w) * 100).toFixed(2)}%)` }}
-          />
-          <div className="absolute inset-0" style={{ clipPath: `inset(0 ${CAN_CLIP} 0 0)` }}>
-            <img
-              data-glass-empty
-              src="images/hero.webp"
-              alt=""
-              aria-hidden="true"
-              style={glassImgStyle}
-              className="opacity-70 [filter:grayscale(1)_brightness(2.3)_contrast(.4)]"
-            />
-            <div data-glass-full className="absolute inset-0">
-              <img src="images/hero.webp" alt="A glass of Barista iced coffee" style={glassImgStyle} />
-            </div>
-          </div>
-        </>
-      )}
+    <div className={`relative aspect-[742/772] ${className}`}>
+      <div
+        className="absolute bottom-[-2%] left-[4%] h-[10%] w-[110%] origin-left -skew-x-[40deg] rounded-[50%] bg-[radial-gradient(closest-side,rgba(40,18,8,.32),transparent)]"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute bottom-[-1.5%] left-[8%] h-[5%] w-[84%] rounded-[50%] bg-[radial-gradient(closest-side,rgba(20,8,2,.65),rgba(20,8,2,.25)_60%,transparent)]"
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 overflow-hidden">
+        <img
+          data-glass-full
+          src="images/hero.webp"
+          alt="Barista iced coffee can and a glass of iced coffee"
+          style={glassImgStyle}
+          className="[filter:sepia(.12)_saturate(1.08)_contrast(1.04)]"
+        />
+      </div>
     </div>
   )
 }
@@ -426,7 +416,6 @@ export default function Chapters() {
         // One glass lives in the stage above the scenes. It sits on a slot in "Pour", fills there,
         // then rides the liquid wave to its slot in "Sip" (unit 3→4), where the cards orbit it.
         const travelGlass = q('[data-travel-glass]')[0]
-        const glassFull = q('[data-travel-glass] [data-glass-full]')
         const slotPour = q('[data-glass-slot="pour"]')[0]
         const slotSip = q('[data-glass-slot="sip"]')[0]
         const streamBody = q('[data-stream-body]')[0]
@@ -441,16 +430,14 @@ export default function Chapters() {
         // grow: how far the stream's front has travelled (0 = at the can, 1 = in the glass)
         // cut: how far its tail has left the can (stream ends when cut reaches grow)
         // fill: top of the coffee in the glass, as a share of the glass height
-        const pour = { grow: 0, cut: 0, fill: 0.9 }
+        // the glass is already full; fill is where its coffee surface sits (share of the photo height)
+        const pour = { grow: 0, cut: 0, fill: 0.36 }
         const move = { t: 0 }
-        gsap.set(glassFull, { clipPath: 'inset(88% 0% 0% 0%)' })
         tl.to(q('[data-pour-full]'), { opacity: 0, duration: 0.12 }, 2.05)
           .to(q('[data-pour-drops]'), { opacity: 0, duration: 0.12 }, 2.05)
           .to(q('[data-pour-tilt]'), { opacity: 1, duration: 0.1 }, 2.05)
           .to(q('[data-pour-tilt]'), { rotation: -38, transformOrigin: '72% 70%', duration: 0.35, ease: 'power2.inOut' }, 2.05)
           .to(pour, { grow: 1, duration: 0.3, ease: 'power1.in' }, 2.35)
-          .to(pour, { fill: 0, duration: 0.7, ease: 'power1.inOut' }, 2.55)
-          .to(glassFull, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.7, ease: 'power1.inOut' }, 2.55)
           .to(pour, { cut: 1, duration: 0.12, ease: 'power1.in' }, 3.15)
           .to(q('[data-pour-tilt]'), { rotation: 0, duration: 0.3, ease: 'power2.inOut' }, 3.25)
           // the full glass travels with the wave into "Sip"
@@ -528,7 +515,8 @@ export default function Chapters() {
           const w = h * PHOTO_RATIO
           const cx = lerp(a.left + a.width / 2, b.left + b.width / 2, t) - s.left
           // a small hop on the way, and a gentle float once it has arrived
-          const lift = Math.sin(Math.PI * t) * h * 0.12 + Math.sin(time * 1.6) * 4 * t
+          // carried on the wave without leaving the surface: no hop, only a very slight sway once it is in Sip
+          const lift = 0
           const bottom = lerp(a.bottom, b.bottom, t) - s.top - lift
           // the element keeps one size (the "Sip" size) and is scaled, so nothing is re-laid out
           if (Math.abs(baseH - b.height) > 0.5) {
@@ -552,7 +540,7 @@ export default function Chapters() {
             const x0 = m.left - s.left
             const y0 = m.top - s.top
             const x1 = gLeft + w * GLASS_CENTER_X
-            const y1 = gTop + h * Math.max(pour.fill, 0.4)
+            const y1 = gTop + h * pour.fill
             // control point: it leaves the can sideways, then gravity takes over
             const cxq = x0 + (x1 - x0) * 0.78
             const cyq = y0 + (y1 - y0) * 0.06
@@ -587,7 +575,7 @@ export default function Chapters() {
             streamShine.setAttribute('stroke-width', fmt(thick * 0.22))
 
             // where it hits the coffee: droplets jump up and fall back, rings spread out
-            const landed = to > 0.97 && pour.fill < 0.88
+            const landed = to > 0.97
             const dts = Math.min(dt, 50) / 1000
             if (landed) spawnBudget += dts * 34
             drops.forEach((d) => {
@@ -836,7 +824,6 @@ export default function Chapters() {
                 className="pointer-events-none absolute bottom-[4%] left-1/2 aspect-[742/772] h-[26svh] -translate-x-1/2 md:bottom-[5%] md:h-[min(44svh,32vw)]"
                 aria-hidden="true"
               >
-                <FloorShadow className="bottom-[-4%] w-[85%]" />
               </div>
             )}
             {s.id === 'sip' && (
@@ -845,7 +832,6 @@ export default function Chapters() {
                 className="pointer-events-none absolute bottom-[12%] left-1/2 aspect-[742/772] h-[32svh] -translate-x-1/2 md:bottom-[10%] md:h-[min(56svh,40vw)]"
                 aria-hidden="true"
               >
-                <FloorShadow className="bottom-[-4%] w-[85%]" />
               </div>
             )}
 
