@@ -343,11 +343,9 @@ export default function Chapters() {
           scrollTrigger: {
             trigger: root.current,
             start: 'top top',
-            // about 1.8 screens of scrolling per step, so each moment has time to play out
-            end: () => '+=' + window.innerHeight * units * 1.8,
+            end: () => '+=' + window.innerHeight * units * 1.15,
             pin: true,
-            // the animation trails the scroll by about a second, which smooths out jerky wheels
-            scrub: 1.1,
+            scrub: 0.6,
             anticipatePin: 1,
             onUpdate: (self) => {
               const u = self.progress * units
