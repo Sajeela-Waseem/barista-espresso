@@ -24,7 +24,7 @@ export default function App() {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
     window.scrollTo(0, 0)
 
-    const lenis = new Lenis({ lerp: 0.09 })
+    const lenis = new Lenis({ lerp: 0.075, wheelMultiplier: 0.85 })
     setLenis(lenis)
     lenis.on('scroll', ScrollTrigger.update)
     const tick = (time) => lenis.raf(time * 1000)

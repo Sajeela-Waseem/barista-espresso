@@ -343,9 +343,11 @@ export default function Chapters() {
           scrollTrigger: {
             trigger: root.current,
             start: 'top top',
-            end: () => '+=' + window.innerHeight * units * 1.15,
+            // about 1.8 screens of scrolling per step, so each moment has time to play out
+            end: () => '+=' + window.innerHeight * units * 1.8,
             pin: true,
-            scrub: 0.6,
+            // the animation trails the scroll by about a second, which smooths out jerky wheels
+            scrub: 1.1,
             anticipatePin: 1,
             onUpdate: (self) => {
               const u = self.progress * units
@@ -684,7 +686,10 @@ export default function Chapters() {
             const spot = (W < 768 ? SPOTS_PHONE : SPOTS)[i % SPOTS.length]
             const halfW = cw / 2
             // each card is let go a beat after the one before
-            const out = r > 0.08 + i * 0.16
+            const gate = 0.08 + i * 0.16
+            const out = r > gate
+            // only ever seen in Sip: fades out at once when you scroll back up, instead of flying back across the page
+            const presence = gsap.utils.clamp(0, 1, (r - gate) / 0.12) * gsap.utils.clamp(0, 1, (wave.p - 0.85) / 0.15)
             const tx = out ? gsap.utils.clamp(halfW + 8, W - halfW - 8, cx + spot.dx * w) : cx
             // on short phones the top cards come down a little to clear the button above
             const ty = out ? ccy + spot.dy * h * (W < 768 && H < 720 && spot.dy < 0 ? 0.78 : 1) : ccy
@@ -700,7 +705,9 @@ export default function Chapters() {
             st.vs += ((ts - st.s) * 160 - st.vs * 16) * step
             st.s += st.vs * step
             const settleAmt = gsap.utils.clamp(0, 1, (st.s - 0.18) / 0.82)
-            if (settleAmt < 0.01 && !out) {
+            if (presence <= 0.001) {
+              // reset so the next throw starts from inside the glass
+              Object.assign(st, { x: cx, y: ccy, vx: 0, vy: 0, s: 0.18, vs: 0 })
               if (c.style.visibility !== 'hidden') c.style.visibility = 'hidden'
               return
             }
@@ -710,7 +717,7 @@ export default function Chapters() {
             // once settled it breathes very slightly, each card at its own pace
             const idle = Math.sin(time * (0.9 + i * 0.23) + i * 2.1) * 3 * settleAmt
             c.style.visibility = 'visible'
-            c.style.opacity = Math.min(1, settleAmt * 2.2).toFixed(3)
+            c.style.opacity = (Math.min(1, settleAmt * 2.2) * presence).toFixed(3)
             // cards come out from behind the glass; the front ones move in front once they are clear
             c.style.zIndex = spot.front && settleAmt > 0.5 ? '3' : '1'
             c.style.transform =
